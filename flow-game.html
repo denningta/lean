@@ -1,0 +1,2251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Game Facilitator</title>
+<style>
+:root {
+  --bg: #f5f6f8; --surface: #ffffff; --surface-2: #eef0f3; --text: #1b1f24; --muted: #5b6470;
+  --border: #d8dce2; --accent: #2f6fde; --accent-ink: #ffffff; --danger: #d43a3a; --good: #1d8a4b;
+  --warn: #a86a12; --r1: #c2510c; --r2: #0e7490; --hot: #fff1b8; --hot-ink: #5c4400;
+  --shadow: 0 1px 2px rgb(0 0 0 / .06), 0 3px 10px rgb(0 0 0 / .05);
+  --card-ink: #1b1f24;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111418; --surface: #191d23; --surface-2: #222830; --text: #e7eaee; --muted: #9aa3ae;
+    --border: #313945; --accent: #6ea2ff; --accent-ink: #0b1220; --danger: #ff6b6b; --good: #4ade80;
+    --warn: #f5b84b; --r1: #fb923c; --r2: #22d3ee; --hot: #3d3510; --hot-ink: #ffe28a;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111418; --surface: #191d23; --surface-2: #222830; --text: #e7eaee; --muted: #9aa3ae;
+  --border: #313945; --accent: #6ea2ff; --accent-ink: #0b1220; --danger: #ff6b6b; --good: #4ade80;
+  --warn: #f5b84b; --r1: #fb923c; --r2: #22d3ee; --hot: #3d3510; --hot-ink: #ffe28a;
+  --shadow: 0 1px 2px rgb(0 0 0 / .4); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+button, input, select, textarea { font: inherit; color: inherit; }
+h1, h2, h3 { margin: 0; line-height: 1.2; }
+h2 { font-size: 1.15rem; }
+h3 { font-size: 1rem; }
+.num, .big-clock, td.n, .tile b { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: .85em; }
+
+/* Header */
+header.top { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--border); }
+.top-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; flex-wrap: wrap; }
+.brand { font-weight: 700; font-size: 1.05rem; margin-right: auto; display: flex; align-items: center; gap: 8px; }
+.brand svg { flex: none; }
+.mini { font-size: .85rem; padding: 2px 8px; border-radius: 99px; background: var(--danger); color: #fff; display: none; }
+.mini.on { display: inline-block; }
+nav.tabs { display: flex; gap: 2px; padding: 0 12px; overflow-x: auto; }
+nav.tabs button { border: 0; background: none; padding: 10px 12px; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; color: var(--muted); font-weight: 600; }
+nav.tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+.tools { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* Layout */
+main { max-width: 1280px; margin: 0 auto; padding: 16px; }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.span-all { grid-column: 1 / -1; }
+.grid.charts { grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); }
+.grid.run { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 800px) { .grid.run { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid.run > .idle-card { grid-column: 1 / -1; } }
+@media (min-width: 1200px) { .grid.run { grid-template-columns: repeat(3, minmax(0, 1fr)); } .grid.run > .idle-card { grid-column: span 2; } }
+.grid.pair { grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: var(--shadow); min-width: 0; }
+.card > h2, .card > h3 { margin-bottom: 10px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.stack-v > * + * { margin-top: 10px; }
+.sp { flex: 1; }
+
+/* Buttons */
+.btn { border: 1px solid var(--border); background: var(--surface); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; line-height: 1.2; }
+.btn:hover { background: var(--surface-2); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.danger { color: var(--danger); }
+.btn.confirming { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn.big { padding: 14px 18px; font-size: 1.1rem; border-radius: 10px; }
+.btn.sm { padding: 4px 8px; font-size: .85rem; }
+.btn.on { background: var(--surface-2); border-color: var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; flex-wrap: wrap; }
+.seg button { border: 0; background: var(--surface); padding: 8px 14px; cursor: pointer; font-weight: 600; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button.active { background: var(--accent); color: var(--accent-ink); }
+
+/* Tiles */
+.tiles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.tile { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+.tile span { display: block; font-size: .8rem; color: var(--muted); }
+.tile b { font-size: 1.35rem; }
+.tile.bad b { color: var(--danger); }
+.tile.ok b { color: var(--good); }
+
+/* Tables */
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+th { font-size: .8rem; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); font-weight: 700; }
+td.n, th.n { text-align: right; }
+td.c, th.c { text-align: center; }
+tr.total td { font-weight: 700; border-top: 2px solid var(--border); }
+.hotcol { background: var(--hot); color: var(--hot-ink); }
+input[type=number], input[type=text], textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); }
+textarea { resize: vertical; line-height: 1.35; display: block; min-height: 2.4em; }
+td input.w-cell { width: 100%; max-width: 5.5em; min-width: 3.2em; text-align: right; margin-left: auto; display: block; }
+table.wip td, table.wip th { padding: 4px 6px; }
+table.wip td:first-child { white-space: nowrap; }
+table.elements td { vertical-align: middle; }
+table.elements th { white-space: nowrap; }
+table.elements td.mid { vertical-align: middle; }
+table.roles td.c { white-space: nowrap; }
+.checklist { columns: 2 300px; column-gap: 28px; }
+.checklist label.chk { break-inside: avoid; }
+.idle-tall { display: none; }
+.cell-head { display: flex; gap: 8px; align-items: center; }
+.cell-head .letter { font-size: 1.15rem; font-weight: 800; min-width: 1.4em; }
+input.w-num { width: 5.5em; text-align: right; }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+label.chk { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; cursor: pointer; }
+label.chk input { margin-top: 3px; }
+.swatch { display: inline-block; width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgb(0 0 0 / .25); vertical-align: -2px; }
+
+/* Messages */
+.msg { padding: 10px 12px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface-2); }
+.msg.bad { border-color: var(--danger); }
+.msg.bad b:first-child { color: var(--danger); }
+.msg.ok { border-color: var(--good); }
+.msg.ok b:first-child { color: var(--good); }
+.msg.warn { border-color: var(--warn); }
+ul.tight { margin: 4px 0; padding-left: 20px; }
+ul.tight li { margin: 2px 0; }
+
+/* Clock */
+.big-clock { font-size: clamp(56px, 12vw, 120px); font-weight: 800; line-height: 1; letter-spacing: -.02em; white-space: nowrap; }
+/* "5:00" is about 1.9 em wide (2.5 em for "10:00"), so 36% of the box width always fits. */
+.clock-main, .pilot-live { container-type: inline-size; }
+.clock-main .big-clock { font-size: min(clamp(56px, 12vw, 120px), 36cqi); }
+.big-clock.ended { color: var(--danger); }
+.progress { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; margin: 10px 0; }
+.progress > div { height: 100%; background: var(--accent); width: 0; }
+.cue { min-height: 2.6em; padding: 10px 12px; border-radius: 9px; background: var(--surface-2); font-weight: 700; }
+.cue.flash { background: var(--hot); color: var(--hot-ink); animation: pulse 1s ease-in-out 3; }
+@keyframes pulse { 50% { transform: scale(1.02); } }
+.rules { margin: 0; padding-left: 20px; }
+.rules li { font-weight: 600; }
+
+/* Counters */
+.counter-big { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.counter-big .val { font-size: 3rem; font-weight: 800; min-width: 1.6em; text-align: center; }
+.defects { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.defect { display: flex; align-items: stretch; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+.defect button { border: 0; background: var(--surface); cursor: pointer; }
+.defect .add { flex: 1; text-align: left; padding: 8px 10px; }
+.defect .add b { display: block; font-size: 1.3rem; }
+.defect .sub { padding: 0 10px; border-left: 1px solid var(--border); color: var(--muted); }
+.defect button:hover { background: var(--surface-2); }
+.log { font-size: .85rem; max-height: 160px; overflow: auto; margin: 0; padding: 0; list-style: none; }
+.log li { padding: 3px 0; border-bottom: 1px dashed var(--border); }
+
+/* Idle grid */
+.idle-cell { width: 34px; height: 30px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; font-weight: 800; }
+.idle-cell.on { background: var(--danger); border-color: var(--danger); color: #fff; }
+table.idle td, table.idle th { padding: 4px 3px; }
+table.idle td:first-child, table.idle th:first-child { padding-left: 8px; }
+
+/* Agenda */
+.timeline { display: flex; height: 34px; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--border); margin-top: 12px; }
+.timeline button { border: 0; border-right: 1px solid var(--border); background: var(--surface-2); font-size: .72rem; cursor: pointer; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 0 4px; color: var(--muted); }
+.timeline button.cur { background: var(--accent); color: var(--accent-ink); }
+.timeline .marker { position: absolute; top: -2px; bottom: -2px; width: 3px; background: var(--danger); pointer-events: none; }
+.block { border-left: 5px solid var(--border); }
+.block.cur { border-left-color: var(--accent); background: linear-gradient(90deg, var(--surface-2), var(--surface) 40%); }
+.block h3 { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.block .when { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
+.say { margin: 6px 0; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 8px 8px 0; font-size: 1.05em; }
+.lbl { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; margin-top: 10px; }
+.stall { border: 1px dashed var(--warn); border-radius: 9px; padding: 8px 12px; margin-top: 10px; }
+.stall.live { background: var(--hot); color: var(--hot-ink); border-style: solid; }
+
+/* Balance chart */
+.bc { --bc-h: 380px; --axis: 38px; --gutter: 72px; margin-top: 8px; }
+.bc.compact { --bc-h: 260px; }
+.bc-plot { position: relative; height: var(--bc-h); margin-top: 22px; border-bottom: 2px solid var(--text); }
+.bc-grid { position: absolute; left: var(--axis); right: 0; border-top: 1px solid var(--border); height: 0; }
+.bc-grid span { position: absolute; left: calc(-1 * var(--axis)); width: calc(var(--axis) - 6px); text-align: right; transform: translateY(-50%); font-size: .75rem; color: var(--muted); }
+.bc-takt { position: absolute; left: var(--axis); right: 0; height: 0; border-top: 3px solid var(--danger); z-index: 3; pointer-events: none; }
+.bc-takt span { position: absolute; right: 0; top: -12px; background: var(--danger); color: #fff; font-size: .75rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+.bc-cols { position: absolute; left: var(--axis); right: var(--gutter); top: 0; bottom: 0; display: flex; gap: 8px; padding: 0 6px; }
+.bc-col { flex: 1; position: relative; max-width: 130px; margin: 0 auto; border-radius: 8px 8px 0 0; }
+.bc-col.drop-ok { background: color-mix(in srgb, var(--accent) 14%, transparent); outline: 2px dashed var(--accent); }
+.bc-stack { position: absolute; left: 8%; right: 8%; bottom: 0; height: 100%; display: flex; flex-direction: column-reverse; }
+.bc-card { flex: none; border: 1px solid rgb(0 0 0 / .35); border-bottom-width: 0; color: var(--card-ink); overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 3px; font-size: 12px; line-height: 1.1; }
+.bc-card:first-child { border-bottom-width: 1px; }
+.bc-card b { font-size: 15px; }
+.bc-card .n { font-size: 10px; opacity: .8; }
+.bc.interactive { user-select: none; -webkit-user-select: none; }
+.bc.interactive .bc-card { cursor: grab; touch-action: none; }
+.bc.interactive .bc-card:hover { filter: brightness(1.06); box-shadow: inset 0 0 0 2px rgb(0 0 0 / .45); }
+.bc-card.drag-src { opacity: .3; }
+.bc-card.carry { box-shadow: inset 0 0 0 3px var(--accent); filter: brightness(1.08); }
+.bc-ghost { position: fixed; z-index: 100; overflow: visible !important; pointer-events: none; border: 1px solid rgb(0 0 0 / .45) !important; border-radius: 4px; box-shadow: 0 12px 30px rgb(0 0 0 / .3); transform: rotate(-2deg); opacity: .95; }
+.ghost-tip { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); background: var(--text); color: var(--bg); font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+body.bc-dragging, body.bc-dragging * { cursor: grabbing !important; }
+.bc-card.selected { box-shadow: inset 0 0 0 3px var(--accent); }
+.bc-col.over .bc-card { border-color: var(--danger); }
+.bc-wait { flex: none; border: 1px dashed var(--muted); border-bottom: 0; background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--muted) 22%, transparent) 6px 8px); }
+.bc-total { position: absolute; left: 0; right: 0; text-align: center; font-weight: 800; font-size: .9rem; transform: translateY(-2px); }
+.bc-col.over .bc-total { color: var(--danger); }
+.bc-labels { display: flex; gap: 8px; padding: 6px calc(var(--gutter) + 6px) 0 calc(var(--axis) + 6px); }
+.bc-labels div { flex: 1; max-width: 130px; margin: 0 auto; text-align: center; font-weight: 700; font-size: .9rem; }
+.bc.compact .bc-card .n { display: none; }
+.strip { display: flex; flex-wrap: wrap; align-items: stretch; row-gap: 8px; margin-top: 8px; }
+.chip { color: var(--card-ink); border: 1px solid rgb(0 0 0 / .3); border-radius: 6px; padding: 4px 8px; font-weight: 700; font-size: .85rem; text-align: center; min-width: 42px; }
+.chip small { display: block; font-weight: 500; font-size: .72rem; }
+.gap { width: 18px; border: 0; background: none; cursor: pointer; position: relative; padding: 0; }
+.gap::after { content: ""; position: absolute; left: 50%; top: 4px; bottom: 4px; width: 2px; transform: translateX(-50%); background: var(--border); }
+.gap:hover::after { background: var(--accent); }
+.gap.cut { width: 26px; }
+.gap.cut::after { width: 5px; background: var(--text); top: -2px; bottom: -2px; border-radius: 3px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .85rem; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+/* Charts (SVG) */
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+svg.chart text { fill: var(--muted); font-size: 12px; }
+svg.chart text.v { fill: var(--text); font-weight: 700; }
+svg.chart .grid line { stroke: var(--border); }
+svg.chart .axis { stroke: var(--text); }
+.f-r1 { fill: var(--r1); } .f-r2 { fill: var(--r2); }
+.s-r1 { stroke: var(--r1); } .s-r2 { stroke: var(--r2); }
+.f-dns { fill: url(#hatch); }
+.ref { stroke: var(--danger); stroke-width: 2; stroke-dasharray: 6 4; }
+i.k-r1 { background: var(--r1); } i.k-r2 { background: var(--r2); }
+
+/* Metrics board */
+.mb td, .mb th { padding: 10px; font-size: 1.02rem; }
+.mb td.chg.good { color: var(--good); font-weight: 700; }
+.mb td.chg.bad { color: var(--danger); font-weight: 700; }
+.mb td.biggest span { border: 3px solid var(--danger); border-radius: 50%; padding: 4px 10px; display: inline-block; }
+
+/* Toast */
+#toast:not(.show) { visibility: hidden; opacity: 0; }
+#toast { pointer-events: none; position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%) translateY(150%); background: var(--text); color: var(--bg); padding: 12px 18px; border-radius: 10px; font-weight: 700; z-index: 50; transition: transform .25s, opacity .25s; max-width: calc(100vw - 32px); box-shadow: 0 6px 24px rgb(0 0 0 / .25); }
+#toast.show { transform: translateX(-50%) translateY(0); }
+#toast.cue { background: var(--hot); color: var(--hot-ink); border: 2px solid var(--warn); }
+
+/* Projector mode */
+body.projector { font-size: 19px; }
+body.projector .no-proj { display: none !important; }
+body.projector main { max-width: none; }
+body.projector .clock-main .big-clock { font-size: min(36cqi, 34vh); }
+body.projector .big-clock.pilot-clock { font-size: min(30cqi, 24vh); }
+/* Projector: the countdown gets the whole top row, clock on the left, cue and rules beside it. */
+@media (min-width: 800px) {
+  body.projector .grid.run > .clock-card { grid-column: 1 / -1; display: flex; gap: 32px; align-items: center; }
+  body.projector .grid.run > .clock-card > .clock-main { flex: 0 0 62%; }
+  body.projector .grid.run > .clock-card > .clock-side { flex: 1; min-width: 0; }
+  body.projector .grid.run > .idle-card { grid-column: 1 / -1; }
+}
+@media (min-width: 800px) and (max-width: 1199px) {
+  body.projector .grid.run > .wip-card { grid-column: 1 / -1; }
+}
+body.projector .bc { --bc-h: 58vh; }
+body.projector .bc-card { font-size: 15px; }
+body.projector .bc-card b { font-size: 20px; }
+body.projector .block:not(.cur) { display: none; }
+
+#print-area { display: none; }
+#print-area .btn, #print-area .no-proj, #print-area .no-print { display: none !important; }
+.sheet { page-break-after: always; break-after: page; padding: 8px 0; color: #15181d; }
+.sheet h2 { font-size: 20pt; margin-bottom: 4pt; }
+.sheet p, .sheet ol, .sheet ul { margin: 4pt 0; }
+.sheet table { width: 100%; border-collapse: collapse; font-size: 12pt; margin-top: 6pt; }
+.sheet th, .sheet td { border: 1px solid #9aa1aa; padding: 5pt 7pt; color: #15181d; vertical-align: middle; }
+.sheet th { color: #444; background: #f1f3f6; }
+.sheet tr { break-inside: avoid; page-break-inside: avoid; }
+.sheet td.dg { width: 46%; padding: 2pt; }
+.card-letter { display: inline-block; min-width: 1.9em; text-align: center; padding: 2px 6px; border: 1px solid rgb(0 0 0 / .35); border-radius: 5px; font-size: 1.25em; color: #15181d; }
+svg.fold { width: 100%; height: auto; display: block; }
+.fold-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 9.5pt; color: #333; margin: 6pt 0 2pt; }
+.fold-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.sheets-preview .sheet { background: #fff; max-width: 8.5in; margin: 0 auto 20px; padding: 0.5in; border-radius: 6px; box-shadow: 0 2px 12px rgb(0 0 0 / .15); }
+.sheets-preview h1 { max-width: 8.5in; margin: 0 auto 8px; }
+@page { size: letter; margin: 0.5in; }
+
+@media print {
+  body.printing > *:not(#print-area) { display: none !important; }
+  body.printing #print-area { display: block; color: #000; }
+  body:not(.printing) header.top, body:not(.printing) .no-print { display: none !important; }
+  body { background: #fff; color: #000; }
+  .card { box-shadow: none; break-inside: avoid; }
+}
+ul.checks { list-style: none; margin: 0; padding: 0; }
+ul.checks li { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+ul.checks li:last-child { border-bottom: 0; }
+ul.checks .ic { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px; color: #fff; margin-top: 1px; }
+ul.checks li.ok .ic { background: var(--good); }
+ul.checks li.bad .ic { background: var(--danger); }
+ul.checks .fix { margin-top: 3px; }
+.pill { padding: 2px 10px; border-radius: 99px; font-weight: 700; font-size: .85rem; white-space: nowrap; }
+.pill.ok { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
+.pill.bad { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+.pilot-live { border: 2px solid var(--accent); border-radius: 12px; padding: 14px 16px; }
+.pilot-now { display: flex; gap: 12px; align-items: center; font-size: 1.45rem; font-weight: 700; margin: 6px 0; }
+.pilot-now .card-letter { font-size: 1.5rem; }
+.big-clock.pilot-clock { font-size: min(clamp(48px, 9vw, 88px), 30cqi); }
+.btn.pilot-go { min-width: 260px; font-size: 1.35rem; padding: 18px 24px; }
+.laps { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 10px; color: var(--muted); }
+table.pilot td, table.pilot th { padding: 4px 6px; }
+@media (max-width: 640px) { table.pilot td, table.pilot th { padding: 3px 2px; } table.pilot td input.w-cell { min-width: 2.8em; } }
+td.flag { color: var(--warn); font-weight: 700; }
+tr.chg td { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.cell-head .swatch { width: 11px; height: 11px; }
+@media (max-width: 640px) { .el-name { display: none; } .btn.pilot-go { min-width: 0; width: 100%; } }
+@media (max-width: 900px) {
+  /* Tables marked .stack turn each row into a card with labeled fields */
+  table.stack thead { display: none; }
+  table.stack, table.stack tbody, table.stack tfoot { display: block; }
+  table.stack tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; padding: 10px 12px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 10px; }
+  table.stack tr.total { border-width: 2px 0 0; border-radius: 0; margin: 0; }
+  table.stack td { display: block; border: 0; padding: 0; text-align: left; }
+  table.stack td.full { grid-column: 1 / -1; }
+  table.stack td.hide-sm { display: none; }
+  table.stack td[data-label]::before { content: attr(data-label); display: block; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 3px; }
+  table.stack td.n input { text-align: left; width: 100%; }
+  table.stack [data-sm-show] { display: inline !important; }
+}
+@media (max-width: 640px) {
+  main { padding: 12px 16px; }
+  .idle-wide { display: none; }
+  .idle-tall { display: block; }
+  .idle-cell { width: 30px; }
+  .idle-tall table.idle td, .idle-tall table.idle th { padding: 4px 2px; }
+  .sheets-preview .sheet { padding: 14px; }
+  .sheet td.dg { width: 55%; }
+  .bc { --bc-h: 300px; --axis: 30px; --gutter: 62px; }
+  .bc-card .n { display: none; }
+  .bc-cols, .bc-labels { gap: 3px; }
+  .clock-main .big-clock { font-size: min(22vw, 36cqi); }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-row">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M2 11 22 3l-6 18-4-7-10-3Z"/><path d="m12 14 10-11"/></svg>
+      Paper Airplane Flow Game
+      <span class="mini" id="mini"></span>
+    </div>
+    <div class="tools no-proj" id="tools"></div>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+</header>
+<main id="app"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="print-area"></div>
+<input type="file" id="import-file" accept="application/json,.json" hidden>
+
+<script>
+'use strict';
+
+/* ============================================================
+   1. Defaults — taken from "Paper Airplane Lean Flow Game.docx"
+   ============================================================ */
+const STORE_KEY = 'paperAirplaneFlowGame.v1';
+const PALETTE = [
+  { name: 'Yellow', hex: '#f6d55c' }, { name: 'Green', hex: '#94d48f' }, { name: 'Blue', hex: '#8fbdf0' },
+  { name: 'Pink', hex: '#f4a7c8' }, { name: 'Orange', hex: '#f7b36f' }, { name: 'White', hex: '#ffffff' },
+  { name: 'Purple', hex: '#c9adf2' }, { name: 'Teal', hex: '#86d9d1' },
+];
+const DEFAULT_ELEMENTS = [
+  { id: 'A', name: 'Crease the center fold and unfold', step: 'Fold the sheet in half the long way, crease hard, unfold', time: 8, r1: 1 },
+  { id: 'B', name: 'Fold the top-left corner to center', step: 'Fold the top-left corner down to the center crease', time: 6, r1: 1 },
+  { id: 'C', name: 'Fold the top-right corner to center', step: 'Fold the top-right corner down to the center crease', time: 6, r1: 1 },
+  { id: 'D', name: 'Fold the left edge to center', step: 'Fold the new left slanted edge to the center crease', time: 7, r1: 2 },
+  { id: 'E', name: 'Fold the right edge to center', step: 'Fold the new right slanted edge to the center crease', time: 7, r1: 2 },
+  { id: 'F', name: 'Fold in half along the center', step: 'Fold the plane in half along the center crease, folds on the outside', time: 6, r1: 3 },
+  { id: 'G', name: 'Fold the left wing down', step: 'Fold the left wing down so its top edge meets the bottom of the body', time: 10, r1: 3 },
+  { id: 'H', name: 'Fold the right wing down to match', step: 'Flip over and fold the right wing down to match the left', time: 12, r1: 3 },
+  { id: 'I', name: 'Draw the logo on the left wing', step: 'Draw the logo (circle with "L") near the left wingtip', time: 15, r1: 4 },
+  { id: 'J', name: 'Draw the logo on the right wing', step: 'Draw the logo near the right wingtip, same spot', time: 15, r1: 4 },
+  { id: 'K', name: 'Tape the top of the fuselage', step: 'Put one piece of tape across the top of the body', time: 12, r1: 4 },
+  { id: 'L', name: 'Write the serial number on the body', step: 'Write the next serial number on the body (01, 02, 03…)', time: 8, r1: 5 },
+  { id: 'M', name: 'Final inspection and checkmark', step: "Check the plane against the golden plane, checkmark the tail, place in the customer's outbox", time: 10, r1: 6 },
+];
+const ANSWER_KEY = [['A', 'B', 'C', 'D'], ['E', 'F', 'G'], ['H', 'I'], ['J', 'K'], ['L', 'M']];
+const CHECKS = [
+  { key: 'nose', label: 'Nose', accept: 'Sharp point, folds meet the center crease', reject: 'Blunt, off-center, or torn' },
+  { key: 'wings', label: 'Wings', accept: 'Both wings the same width, within about 1/4 in', reject: 'Visibly lopsided' },
+  { key: 'logo', label: 'Logo', accept: 'A circle with "L" inside, near each wingtip, same spot both sides', reject: 'Missing, smeared, or on one wing only' },
+  { key: 'tape', label: 'Tape', accept: 'One piece across the top of the fuselage, holding the body closed', reject: 'Missing or loose' },
+  { key: 'serial', label: 'Serial number', accept: 'Written on the body, legible, numbered in order (01, 02, 03…)', reject: 'Missing or unreadable' },
+  { key: 'inspection', label: 'Inspection mark', accept: 'A checkmark from the inspector on the tail', reject: 'Missing' },
+];
+const MATERIALS = [
+  '80 sheets of 8.5 × 11 printer paper (preload WIP, both rounds, spares)',
+  '4 fine-tip markers (logo stations), 1 for the serial number station',
+  '2 tape dispensers',
+  '1 golden plane, built and labeled "GOLDEN — DO NOT SHIP"',
+  'Station sheets for Round 1 (6) and Round 2 (5), printed and laminated',
+  '13 element cards, cut to scale (1 cm = 2 s)',
+  "Whiteboard or flip chart, red tape for the takt line, painter's tape for the cards",
+  '1 stopwatch, 4 sticky tags for lead-time tracking',
+  'Metrics board on a flip chart, 2 observer tally sheets, pens',
+  '6 tables or stations in a straight line with inbox spots marked by tape',
+  'Round 1 WIP preloaded the day before (25 partial planes)',
+];
+const ROLES = [
+  { key: 'operators', label: 'Operators', r1: '6 (S1–S6)', r2: '5 (Op 1–Op 5)', job: 'Build per the station sheet' },
+  { key: 'customer', label: 'Customer', r1: '1', r2: '1', job: 'Pulls finished planes, accepts or rejects against the golden plane' },
+  { key: 'quality', label: 'Quality checker', r1: '1', r2: '1', job: 'Logs every defect on the metrics board' },
+  { key: 'timekeeper', label: 'Timekeeper', r1: '1', r2: '1', job: 'Runs the clock, starts and stops the tagged plane' },
+  { key: 'wip', label: 'WIP observer', r1: '1', r2: '1', job: 'Counts planes between stations at 0:00, 2:30 and 5:00' },
+  { key: 'idle', label: 'Idle observer', r1: '1', r2: '1', job: 'Tallies operators waiting or starved' },
+  { key: 'material', label: 'Material handler', r1: '1', r2: '2', job: 'Keeps paper, markers and tape stocked; in Round 2 the freed operator joins as water spider' },
+];
+const SESSION_SECONDS = 30 * 60;
+const STALL_AT = 18 * 60 + 30;
+
+/* Facilitator script. Functions receive derived values so numbers follow the setup. */
+const AGENDA = [
+  { id: 'kickoff', start: 0, end: 180, title: 'Kickoff',
+    say: d => [`"Our customer wants ${d.c.demand} good planes in ${fmtMin(d.c.roundSeconds)}. That's one plane every ${fmtNum(d.T)} seconds. That number is takt time, the heartbeat of the line."`,
+               `Show the golden plane. "Anything that doesn't match this is scrap."`],
+    do: () => ['Hand out role cards and Round 1 station sheets.', 'Tag one plane in the S1 inbox.'] },
+  { id: 'r1', start: 180, end: 480, title: 'Round 1: Batch and push',
+    rules: d => roundRules(1, d),
+    say: () => ['"The line is already running. Go." Start the clock.'],
+    do: d => ["Timekeeper records the tagged plane's finish time.", `WIP observer counts at ${fmtClock(d.c.roundSeconds / 2)} and ${fmtClock(d.c.roundSeconds)}.`, `Stop at ${fmtClock(d.c.roundSeconds)} sharp. Nobody moves a plane.`],
+    link: { label: 'Open Round 1 timer', tab: 'run', round: 1 } },
+  { id: 'debrief', start: 480, end: 660, title: 'Round 1 debrief',
+    do: () => ['Fill in the Round 1 column of the metrics board together.'],
+    ask: () => ['"Where did planes pile up?" (S4)', '"Who was standing around?" (S5, S6)', '"How long did the tagged plane take?"'],
+    say: () => ['"Did anyone work slowly? No. The line was set up to fail. Let\'s see why."'],
+    link: { label: 'Show metrics board', tab: 'results' } },
+  { id: 'chart', start: 660, end: 960, title: 'Build the balance chart',
+    do: () => ['Hand each Round 1 operator the element cards for their station.', 'Each operator tapes their cards in a stack above their station number.'],
+    say: () => ['Point at the red line. "Every stack above this line can\'t keep up with the customer. Every stack way below it is waiting."'],
+    link: { label: 'Show Round 1 balance chart', tab: 'balance', mode: 'r1' } },
+  { id: 'level', start: 960, end: 1200, title: 'Level the load',
+    say: d => ['"Move cards so every stack is under the red line. Cards must stay in build order, A through M."',
+               `"The ${ordinal(d.r1.length)} person isn't cut. They become our water spider: keeping stock full and fixing problems so operators never stop."`],
+    do: d => [`Let them find that ${d.N} stacks are enough. Don't give the answer unless they stall at 18:30.`, 'Swap in the Round 2 station sheets that match their solution, or the answer key if close enough.'],
+    stall: true,
+    link: { label: 'Open rebalance board', tab: 'balance', mode: 'rebalance' } },
+  { id: 'r2', start: 1200, end: 1500, title: 'Round 2: One-piece flow',
+    do: d => [`Clear Round 1 WIP. Preload 1 partial plane at the Op 2–Op ${d.r2.length} inboxes (${d.r2.length - 1} total) and blank paper at Op 1.`, `Tag a new plane, start the clock, stop at ${fmtClock(d.c.roundSeconds)} sharp.`],
+    rules: d => roundRules(2, d),
+    link: { label: 'Open Round 2 timer', tab: 'run', round: 2 } },
+  { id: 'close', start: 1500, end: 1800, title: 'Compare and close',
+    do: () => ['Fill in the Round 2 column. Circle the biggest change (the metrics board circles it for you).', 'Go around the room: one takeaway each.'],
+    ask: () => ['"Where on our real line is there an S4? What would a balance chart of your cell look like?"'],
+    note: 'If time runs short: cut the go-around to 3 volunteers; never cut the balance chart build.',
+    link: { label: 'Show metrics board', tab: 'results' } },
+];
+const SETUP_STEPS = [
+  'Line up 6 stations with a taped inbox spot between each.',
+  "Preload Round 1 WIP: a stack of 5 at the S2–S6 inboxes, each already built through the prior station's work (25 partial planes), plus blank paper at S1.",
+  'Post the metrics board, the empty balance chart board with the red takt line, and the golden plane where everyone can see them.',
+  'Pilot the build with 2 techs before game day, time each element, and adjust times on this page so S4 stays well over takt while total work stays near 120 s.',
+];
+
+/* ============================================================
+   2. Pure helpers and calculations
+   ============================================================ */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const isNum = v => typeof v === 'number' && isFinite(v);
+const clone = o => JSON.parse(JSON.stringify(o));
+function fmtClock(sec) { sec = Math.max(0, Math.floor(sec + 1e-6)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
+function fmtNum(v) { return isNum(v) ? (Math.round(v * 10) / 10).toString() : '—'; }
+function fmtMin(sec) { return sec % 60 === 0 ? `${sec / 60} minute${sec === 60 ? '' : 's'}` : fmtClock(sec); }
+function ordinal(n) { return ['zeroth', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth'][n] || n + 'th'; }
+
+const takt = c => c.roundSeconds / c.demand;
+const workContent = c => c.elements.reduce((s, e) => s + (isNum(+e.time) ? +e.time : 0), 0);
+const operatorsNeeded = c => Math.ceil(workContent(c) / takt(c) - 1e-9);
+const elementMap = c => Object.fromEntries(c.elements.map(e => [e.id, e]));
+const stackLoad = (map, stack) => stack.reduce((s, id) => s + (map[id] ? +map[id].time || 0 : 0), 0);
+
+function r1Stations(c) {
+  const nums = [...new Set(c.elements.map(e => +e.r1 || 1))].sort((a, b) => a - b);
+  return nums.map(n => c.elements.filter(e => (+e.r1 || 1) === n).map(e => e.id));
+}
+function validSplit(els, stacks) {
+  if (!Array.isArray(stacks) || !stacks.length) return false;
+  if (stacks.some(s => !Array.isArray(s) || !s.length)) return false;
+  return stacks.flat().join('|') === els.map(e => e.id).join('|');
+}
+function cutsFromStacks(stacks) { const cuts = []; let k = 0; for (let i = 0; i < stacks.length - 1; i++) { k += stacks[i].length; cuts.push(k); } return cuts; }
+function stacksFromCuts(ids, cuts) {
+  const cs = [...new Set(cuts)].filter(k => k > 0 && k < ids.length).sort((a, b) => a - b);
+  const out = []; let prev = 0;
+  for (const k of cs) { out.push(ids.slice(prev, k)); prev = k; }
+  out.push(ids.slice(prev));
+  return out;
+}
+function toggleCut(stacks, k) {
+  const ids = stacks.flat(); const cuts = cutsFromStacks(stacks);
+  const i = cuts.indexOf(k);
+  if (i >= 0) cuts.splice(i, 1); else cuts.push(k);
+  return stacksFromCuts(ids, cuts);
+}
+/* Move card `id` onto stack `j`. Cards must stay in A–M order, so every card between
+   `id` and stack j moves with it, and any station emptied on the way disappears.
+   Returns { stacks, moved } or null when nothing would change. */
+function moveTo(stacks, id, j) {
+  const i = stacks.findIndex(st => st.includes(id));
+  if (i < 0 || j === i || j < 0 || j >= stacks.length) return null;
+  const ids = stacks.flat(), x = ids.indexOf(id), cuts = cutsFromStacks(stacks);
+  const start = k => (k === 0 ? 0 : cuts[k - 1]);
+  let next, moved;
+  if (j > i) { /* id becomes the first card of stack j */
+    moved = ids.slice(x, start(j));
+    next = cuts.filter(c => c <= x || c > start(j)).concat([x]);
+  } else {     /* id becomes the last card of stack j */
+    moved = ids.slice(cuts[j], x + 1);
+    next = cuts.filter(c => c < cuts[j] || c > x).concat([x + 1]);
+  }
+  return { stacks: stacksFromCuts(ids, next), moved };
+}
+function splitStats(d, stacks) {
+  const loads = stacks.map(st => stackLoad(d.map, st));
+  const maxLoad = Math.max(...loads);
+  const n = stacks.length;
+  return {
+    loads, n, maxLoad, bottleneck: loads.indexOf(maxLoad),
+    over: loads.map((l, i) => (l > d.T + 1e-9 ? i : -1)).filter(i => i >= 0),
+    capacity: maxLoad > 0 ? Math.floor(d.c.roundSeconds / maxLoad + 1e-9) : 0,
+    efficiency: maxLoad > 0 ? d.W / (n * maxLoad) : 0,
+  };
+}
+
+function newClock() { return { accum: 0, startedAt: null }; }
+function clockElapsed(cl) { return (cl.accum + (cl.startedAt ? Date.now() - cl.startedAt : 0)) / 1000; }
+function clockStart(cl) { if (!cl.startedAt) cl.startedAt = Date.now(); }
+function clockPause(cl) { if (cl.startedAt) { cl.accum += Date.now() - cl.startedAt; cl.startedAt = null; } }
+function clockSet(cl, sec) { cl.accum = Math.max(0, sec) * 1000; if (cl.startedAt) cl.startedAt = Date.now(); }
+
+const scanCount = c => Math.max(1, Math.floor(c.roundSeconds / c.idleInterval + 1e-9));
+const wipTimes = c => [0, c.roundSeconds / 2, c.roundSeconds];
+function roundCues(c) {
+  const R = c.roundSeconds, cues = [];
+  cues.push({ id: 'wip0', t: 0, kind: 'wip', col: 0 });
+  cues.push({ id: 'wip1', t: R / 2, kind: 'wip', col: 1 });
+  cues.push({ id: 'wip2', t: R, kind: 'end', col: 2 });
+  for (let k = 1; k <= scanCount(c); k++) cues.push({ id: 'idle' + k, t: k * c.idleInterval, kind: 'idle', scan: k - 1 });
+  return cues.sort((a, b) => a.t - b.t);
+}
+function cueMessage(fired, c) {
+  const t = Math.max(...fired.map(f => f.t)), N = scanCount(c);
+  if (fired.some(f => f.kind === 'end')) return `${fmtClock(t)}. STOP, nobody moves a plane. Count WIP and do the last idle scan.`;
+  const parts = [];
+  if (fired.some(f => f.id === 'wip0')) parts.push('Round started. Confirm the 0:00 WIP preload counts');
+  else if (fired.some(f => f.kind === 'wip')) parts.push('WIP count now');
+  const idle = fired.filter(f => f.kind === 'idle').pop();
+  if (idle) parts.push(`idle scan ${idle.scan + 1} of ${N}: tap anyone waiting or blocked`);
+  return `${fmtClock(t)}. ${parts.join(' + ')}.`;
+}
+
+function leadTime(r, c) {
+  if (isNum(r.taggedStart) && isNum(r.taggedShip)) return { value: Math.max(0, r.taggedShip - r.taggedStart), dns: false };
+  if (r.didNotShip) return { value: null, dns: true, floor: c.roundSeconds };
+  return { value: null, dns: false };
+}
+const defectTotal = r => CHECKS.reduce((s, k) => s + (r.defects[k.key] || 0), 0);
+function wipKeys(n) { const k = []; for (let i = 2; i <= n; i++) k.push('in' + i); k.push('out'); return k; }
+function wipTotal(r, n, col) {
+  const vals = wipKeys(n).map(k => r.wip[k] ? r.wip[k][col] : null).filter(isNum);
+  return vals.length ? vals.reduce((a, b) => a + b, 0) : null;
+}
+function idleByStation(r, n, scans) {
+  const out = [];
+  for (let i = 1; i <= n; i++) out.push((r.idle[i] || []).slice(0, scans).filter(Boolean).length);
+  return out;
+}
+function roundPlayed(r) { return r.clock.accum > 0 || !!r.clock.startedAt || r.ended || r.good > 0 || defectTotal(r) > 0 || r.log.length > 0; }
+
+/* One metrics-board row comparison. better: 'higher' | 'lower' | null */
+function compare(r1, r2, better) {
+  const v1 = r1 && typeof r1 === 'object' ? r1 : { value: r1 };
+  const v2 = r2 && typeof r2 === 'object' ? r2 : { value: r2 };
+  const a = isNum(v1.value) ? v1.value : (v1.dns ? v1.floor : null);
+  const b = isNum(v2.value) ? v2.value : (v2.dns ? v2.floor : null);
+  if (!isNum(a) || !isNum(b)) return null;
+  const diff = b - a;
+  const bound = !!((v1.dns && !isNum(v1.value)) || (v2.dns && !isNum(v2.value)));
+  /* Relative size of the change; the floor of 5 keeps tiny counts (1 → 0 defects) from outranking big swings. */
+  const score = Math.abs(diff) / Math.max(Math.abs(a), Math.abs(b), 5);
+  const good = better === 'higher' ? diff > 0 : better === 'lower' ? diff < 0 : null;
+  return { diff, pct: a !== 0 ? diff / a : null, score, good, bound };
+}
+function metricsRows(st, d) {
+  const c = d.c, R1 = st.rounds[1], R2 = st.rounds[2];
+  const n1 = d.r1.length, n2 = d.r2.length, scans = scanCount(c);
+  const p1 = roundPlayed(R1), p2 = roundPlayed(R2);
+  const pick = (played, v) => (played ? v : null);
+  const sum = a => a.reduce((x, y) => x + y, 0);
+  const rows = [
+    { key: 'good', label: 'Good planes shipped', target: String(c.demand), better: 'higher', r1: pick(p1, R1.good), r2: pick(p2, R2.good) },
+    { key: 'defects', label: 'Defects (rejected by customer)', target: '0', better: 'lower', r1: pick(p1, defectTotal(R1)), r2: pick(p2, defectTotal(R2)) },
+    { key: 'wip', label: `WIP on the line at ${fmtClock(c.roundSeconds)}`, target: 'Low', better: 'lower', r1: wipTotal(R1, n1, 2), r2: wipTotal(R2, n2, 2) },
+    { key: 'lead', label: 'Tagged-plane lead time (s)', target: 'Short', better: 'lower', r1: leadTime(R1, c), r2: leadTime(R2, c), unit: 's' },
+    { key: 'waits', label: 'Operator-waits tallied', target: '0', better: 'lower', r1: pick(p1, sum(idleByStation(R1, n1, scans))), r2: pick(p2, sum(idleByStation(R2, n2, scans))) },
+    { key: 'ops', label: 'Operators on the line', target: String(d.N), better: null, r1: n1, r2: n2 },
+  ];
+  rows.forEach(r => { r.change = compare(r.r1, r.r2, r.better); });
+  let best = rows.find(r => r.key === st.biggestOverride && r.change) || null;
+  if (!best) rows.filter(r => r.key !== 'ops' && r.change && r.change.score > 0).forEach(r => { if (!best || r.change.score > best.change.score) best = r; });
+  if (best) best.biggest = true;
+  return rows;
+}
+function fmtMetric(v, unit) {
+  if (v && typeof v === 'object') {
+    if (isNum(v.value)) return fmtNum(v.value) + (unit ? ' ' + unit : '');
+    if (v.dns) return `did not ship (> ${v.floor} s)`;
+    return '—';
+  }
+  return isNum(v) ? fmtNum(v) : '—';
+}
+function fmtChange(ch, unit) {
+  if (!ch) return '—';
+  const sign = ch.diff > 0 ? '+' : ch.diff < 0 ? '−' : '±';
+  let s = (ch.bound ? (ch.diff < 0 ? '≤ ' : '≥ ') : '') + sign + fmtNum(Math.abs(ch.diff)) + (unit ? ' ' + unit : '');
+  if (isNum(ch.pct) && ch.diff !== 0 && !ch.bound) s += ` (${ch.pct > 0 ? '+' : '−'}${Math.round(Math.abs(ch.pct) * 100)}%)`;
+  return s;
+}
+function roundRules(n, d) {
+  return n === 1
+    ? ['Work only on your station sheet.', `Pass planes in stacks of ${d.c.batchSize}.`, 'Never pass a partial stack, even at the end of the round.']
+    : ['Pass one plane at a time.', 'Your inbox may hold 1 plane at most.', "If it's full, stop and wait. Waiting? Raise your hand for the water spider."];
+}
+const stationLabel = (n, i) => (n === 1 ? 'S' : 'Op ') + (i + 1);
+
+/* ============================================================
+   2b. Fold diagrams for the station sheets
+   Geometry is in inches on an 8.5 × 11 sheet, so every picture is to scale.
+   Front views: x right, y down, nose at the top. Side views: nose left,
+   keel (center crease) at the bottom. Top view: nose left, left wing below.
+   ============================================================ */
+const FOLD = (() => {
+  const W = 8.5, H = 11, C = W / 2;
+  const t22 = Math.tan(Math.PI / 8), t11 = Math.tan(Math.PI / 16);
+  const yD = C / t22;              /* D/E fold lines meet the side edges here (≈10.26 in) */
+  const tip = C * Math.SQRT2;      /* the folded corner lands on the crease here (≈6.01 in) */
+  const reflect = (p, a, b) => {
+    const dx = b[0] - a[0], dy = b[1] - a[1], t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy);
+    return [2 * (a[0] + t * dx) - p[0], 2 * (a[1] + t * dy) - p[1]];
+  };
+  const mir = pts => pts.map(([x, y]) => [H - x, y]);
+  const paper = pts => ({ t: 'poly', pts, k: 'paper' });
+  const flap = pts => ({ t: 'poly', pts, k: 'flap' });
+  const move = pts => ({ t: 'poly', pts, k: 'move' });
+  const fold = (a, b, k = 'valley') => ({ t: 'line', a, b, k });
+  const arrow = (a, b, bend) => ({ t: 'arrow', a, b, bend });
+
+  /* Front views, sheet still flat */
+  const sheet = [[0, 0], [W, 0], [W, H], [0, H]];
+  const crease = { t: 'line', a: [C, 0], b: [C, H], k: 'crease' };
+  const fB = [[C, 0], [0, C], [C, C]], fC = [[C, 0], [W, C], [C, C]];
+  const fD = [[C, 0], [C, tip], [0, yD]], fE = [[C, 0], [C, tip], [W, yD]];
+  const s0 = [paper(sheet)];
+  const s1 = [paper(sheet), crease];
+  const s2 = [paper([[C, 0], [W, 0], [W, H], [0, H], [0, C]]), crease, flap(fB)];
+  const s3 = [paper([[C, 0], [W, C], [W, H], [0, H], [0, C]]), crease, flap(fB), flap(fC)];
+  const s4 = [paper([[C, 0], [W, C], [W, H], [0, H], [0, yD]]), crease, flap(fC), flap(fD)];
+  const s5 = [paper([[C, 0], [W, yD], [W, H], [0, H], [0, yD]]), crease, flap(fD), flap(fE)];
+
+  /* Side views, folded in half */
+  const N = [0, C], T1 = [yD, 0], T2 = [H, 0], B = [H, C], Wf = [H, C - H * t11];
+  const wing = [N, T1, T2, Wf];
+  const wingDown = [N, reflect(T1, N, Wf), reflect(T2, N, Wf), Wf];
+  const sideFlap = [N, [tip, C], T1];   /* the D flap, now on the outside */
+  const s6 = [paper([N, T1, T2, B]), flap(sideFlap)];
+  const s7 = [paper([N, T1, T2, B]), flap(sideFlap), fold(N, Wf, 'edge'), flap(wingDown)];
+
+  /* Top view, wings opened level: unfold each wing about its root (the G/H fold line) */
+  const rootLen = Math.hypot(Wf[0] - N[0], Wf[1] - N[1]);
+  const u = [(Wf[0] - N[0]) / rootLen, (Wf[1] - N[1]) / rootLen];
+  const toTop = p => { const dx = p[0] - N[0], dy = p[1] - N[1]; return [dx * u[0] + dy * u[1], Math.abs(dx * u[1] - dy * u[0])]; };
+  const wt = wing.map(toTop), span = Math.max(...wt.map(p => p[1]));
+  const lw = wt.map(([a, o]) => [a, o]), rw = wt.map(([a, o]) => [a, -o]);
+  const logoAt = [toTop(T1)[0] - 1.2, 0.6 * span];
+  const top = [paper(lw), paper(rw), { t: 'line', a: [0, 0], b: [rootLen, 0], k: 'edge' },
+    { t: 'label', p: [rootLen * 0.45, span + 0.7], s: 'left wing' }, { t: 'label', p: [rootLen * 0.45, -span - 0.45], s: 'right wing' }];
+  const logo = (side, hi) => ({ t: 'logo', p: [logoAt[0], side * logoAt[1]], r: 0.5, hi });
+  const side = [paper([N, Wf, B]), { t: 'line', a: N, b: Wf, k: 'wing' }];
+  const serial = hi => ({ t: 'text', p: [7.3, C - (7.3 * t11) * 0.42], r: 0.36, s: '07', hi });
+
+  const STEPS = {
+    A: { main: [...s0, move([[C, 0], [W, 0], [W, H], [C, H]]), fold([C, 0], [C, H]), arrow([W - 1.1, H * 0.42], [1.1, H * 0.42], 0.28)], cap: 'Fold in half, crease hard, unfold', result: s1 },
+    B: { main: [...s1, move([[0, 0], [C, 0], [0, C]]), fold([C, 0], [0, C]), arrow([0.8, 0.8], [C - 0.7, C - 0.7], -0.35)], cap: 'Top-left corner to the crease', result: s2 },
+    C: { main: [...s2, move([[C, 0], [W, 0], [W, C]]), fold([C, 0], [W, C]), arrow([W - 0.8, 0.8], [C + 0.7, C - 0.7], 0.35)], cap: 'Top-right corner to the crease', result: s3 },
+    D: { main: [...s3, move([[C, 0], [0, C], [0, yD]]), fold([C, 0], [0, yD]), arrow([0.5, 7.4], [C - 0.7, 5.6], -0.35)], cap: 'Left slanted edge to the crease', result: s4 },
+    E: { main: [...s4, move([[C, 0], [W, C], [W, yD]]), fold([C, 0], [W, yD]), arrow([W - 0.5, 7.4], [C + 0.7, 5.6], 0.35)], cap: 'Right slanted edge to the crease', result: s5 },
+    F: { main: [...s5, move([[C, 0], [W, yD], [W, H], [C, H]]), fold([C, 0], [C, H], 'mountain'), arrow([W - 0.9, 9.2], [1.2, 9.2], 0.3)], cap: 'Fold away from you, flaps outside', result: s6, rcap: 'Turn on its side' },
+    G: { main: [...s6, move(wing), fold(N, Wf), arrow([6.6, 1.75], [6.6, 3.95], -0.45)], cap: 'Top edge down to the bottom edge', result: s7 },
+    H: { main: [paper(mir([N, T1, T2, B])), flap(mir(sideFlap)), move(mir(wing)), fold(mir([N])[0], mir([Wf])[0]), arrow([H - 6.6, 1.75], [H - 6.6, 3.95], 0.45), { t: 'label', p: [H / 2 + 1.5, -0.7], s: 'Flip it over first', bold: true }], cap: 'Fold to match the left wing', result: top, rcap: 'Open the wings level' },
+    I: { main: [...top, logo(1, true)], cap: 'Logo near the left wingtip' },
+    J: { main: [...top, logo(1), logo(-1, true)], cap: 'Same spot on the right wingtip' },
+    K: { main: [...top, logo(1), logo(-1), { t: 'poly', k: 'tape', hi: true, pts: [[4.6, -0.75], [5.5, -0.75], [5.5, 0.75], [4.6, 0.75]] }], cap: 'One piece of tape across the top' },
+    L: { main: [...side, serial(true)], cap: 'Serial number on the body' },
+    M: { main: [...side, serial(false), { t: 'check', p: [10.35, C - (10.35 * t11) * 0.45], r: 0.36, hi: true }], cap: 'Matches golden plane? Check the tail' },
+  };
+
+  const INK = '#2b2f36', HI = '#1f5fbf';
+  const STY = {
+    paper: `fill="#fff" stroke="${INK}" stroke-width="1.3" stroke-linejoin="round"`,
+    flap: `fill="#e2e8ef" stroke="${INK}" stroke-width="1.1" stroke-linejoin="round"`,
+    move: `fill="${HI}" fill-opacity=".14" stroke="none"`,
+    crease: 'stroke="#a3abb5" stroke-width=".9"',
+    valley: `stroke="${HI}" stroke-width="1.8" stroke-dasharray="6 4"`,
+    mountain: `stroke="${HI}" stroke-width="1.8" stroke-dasharray="9 3 2 3"`,
+    edge: `stroke="${INK}" stroke-width="1"`,
+    wing: `stroke="${INK}" stroke-width="3.2" stroke-linecap="round"`,
+  };
+  function draw(items, box, mid) {
+    const pts = [];
+    for (const it of items) {
+      if (it.pts) pts.push(...it.pts);
+      if (it.a) pts.push(it.a, it.b);
+      if (it.r) pts.push([it.p[0] - it.r, it.p[1] - it.r], [it.p[0] + it.r, it.p[1] + it.r]);
+      if (it.t === 'label') pts.push(it.p);
+    }
+    const pad = 0.3;
+    const x0 = Math.min(...pts.map(p => p[0])) - pad, x1 = Math.max(...pts.map(p => p[0])) + pad;
+    const y0 = Math.min(...pts.map(p => p[1])) - pad, y1 = Math.max(...pts.map(p => p[1])) + pad;
+    const sc = Math.min(box.w / (x1 - x0), box.h / (y1 - y0));
+    const ox = box.x + (box.w - (x1 - x0) * sc) / 2 - x0 * sc, oy = box.y + (box.h - (y1 - y0) * sc) / 2 - y0 * sc;
+    const M = p => [ox + p[0] * sc, oy + p[1] * sc];
+    const f = v => v.toFixed(1), P = p => { const q = M(p); return f(q[0]) + ',' + f(q[1]); };
+    const halo = (q, r) => `<circle cx="${f(q[0])}" cy="${f(q[1])}" r="${f(r)}" fill="${HI}" fill-opacity=".13"/>`;
+    let o = '';
+    for (const it of items) {
+      const col = it.hi ? HI : INK;
+      if (it.t === 'poly') {
+        o += it.k === 'tape'
+          ? `<polygon points="${it.pts.map(P).join(' ')}" fill="#9a9a9a" fill-opacity=".45" stroke="${col}" stroke-width="${it.hi ? 2 : 1}"/>`
+          : `<polygon points="${it.pts.map(P).join(' ')}" ${STY[it.k]}/>`;
+      } else if (it.t === 'line') {
+        const a = M(it.a), b = M(it.b);
+        o += `<line x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}" ${STY[it.k]}/>`;
+      } else if (it.t === 'arrow') {
+        const a = M(it.a), b = M(it.b), dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
+        const c = [(a[0] + b[0]) / 2 - dy / len * it.bend * len, (a[1] + b[1]) / 2 + dx / len * it.bend * len];
+        o += `<path d="M${f(a[0])} ${f(a[1])} Q${f(c[0])} ${f(c[1])} ${f(b[0])} ${f(b[1])}" fill="none" stroke="${HI}" stroke-width="2.2" stroke-linecap="round" marker-end="url(#${mid})"/>`;
+      } else if (it.t === 'logo') {
+        const q = M(it.p), r = it.r * sc;
+        if (it.hi) o += halo(q, r * 2);
+        o += `<circle cx="${f(q[0])}" cy="${f(q[1])}" r="${f(r)}" fill="#fff" stroke="${col}" stroke-width="1.6"/><text x="${f(q[0])}" y="${f(q[1] + r * 0.45)}" text-anchor="middle" font-size="${f(r * 1.3)}" font-weight="800" fill="${col}">L</text>`;
+      } else if (it.t === 'text') {
+        const q = M(it.p), r = it.r * sc;
+        if (it.hi) o += halo(q, r * 2.2);
+        o += `<text x="${f(q[0])}" y="${f(q[1] + r * 0.7)}" text-anchor="middle" font-size="${f(r * 2)}" font-weight="700" fill="${col}">${esc(it.s)}</text>`;
+      } else if (it.t === 'check') {
+        const q = M(it.p), r = it.r * sc;
+        if (it.hi) o += halo(q, r * 2.2);
+        o += `<polyline points="${f(q[0] - r)},${f(q[1])} ${f(q[0] - r * 0.25)},${f(q[1] + r * 0.75)} ${f(q[0] + r)},${f(q[1] - r * 0.85)}" fill="none" stroke="${col}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`;
+      } else if (it.t === 'label') {
+        const q = M(it.p);
+        o += `<text x="${f(q[0])}" y="${f(q[1] + 3)}" text-anchor="middle" font-size="${it.bold ? 11 : 10}" ${it.bold ? `font-weight="700" fill="${HI}"` : 'fill="#555"'}>${esc(it.s)}</text>`;
+      }
+    }
+    return o;
+  }
+  let uid = 0;
+  function svg(id) {
+    const st = STEPS[id];
+    if (!st) return '';
+    const mid = 'fold-arrow-' + (++uid);
+    const main = st.result ? { x: 4, y: 6, w: 200, h: 136 } : { x: 4, y: 6, w: 312, h: 136 };
+    let o = `<svg class="fold" viewBox="0 0 320 168" role="img" aria-label="${esc('Card ' + id + ': ' + st.cap)}" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">`;
+    o += `<defs><marker id="${mid}" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="${HI}"/></marker></defs>`;
+    o += draw(st.main, main, mid);
+    o += `<text x="${main.x + main.w / 2}" y="162" text-anchor="middle" font-size="11" font-weight="600" fill="#333">${esc(st.cap)}</text>`;
+    if (st.result) {
+      o += `<line x1="209" y1="74" x2="225" y2="74" stroke="#888" stroke-width="1.6" marker-end="url(#${mid})"/>`;
+      o += `<rect x="230" y="10" width="86" height="128" rx="6" fill="#f6f7f9" stroke="#d5d9df"/>`;
+      o += draw(st.result, { x: 234, y: 16, w: 78, h: 116 }, mid);
+      o += `<text x="273" y="162" text-anchor="middle" font-size="10" fill="#555">${esc(st.rcap || 'Result')}</text>`;
+    }
+    return o + '</svg>';
+  }
+  const legend = `<div class="fold-legend">
+    <span><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" ${STY.valley}/></svg>Fold toward you</span>
+    <span><svg width="30" height="10"><line x1="1" y1="5" x2="29" y2="5" ${STY.mountain}/></svg>Fold away from you</span>
+    <span><svg width="18" height="12"><rect x="1" y="1" width="16" height="10" ${STY.move} stroke="${HI}" stroke-width=".6"/></svg>Paper that moves</span>
+    <span><svg width="18" height="12"><rect x="1" y="1" width="16" height="10" ${STY.flap}/></svg>Folded flap</span>
+    <span><svg width="28" height="12"><defs><marker id="fold-arrow-legend" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="${HI}"/></marker></defs><path d="M2 9 Q14 0 24 8" fill="none" stroke="${HI}" stroke-width="2" marker-end="url(#fold-arrow-legend)"/></svg>Fold this way</span>
+  </div>`;
+  return { svg, legend, has: id => !!STEPS[id], geom: { W, H, C, yD, tip, N, T1, Wf, reflect, wingDown, span, rootLen } };
+})();
+
+/* ============================================================
+   2c. Card-time design: best split, design checks, auto-fit, pilot timing
+   ============================================================ */
+const DESIGN_DEFAULTS = { slack: 2, margin: 8 };
+const designTargets = c => ({ ...DESIGN_DEFAULTS, ...(c.design || {}) });
+const sumOf = a => a.reduce((x, y) => x + y, 0);
+
+/* Contiguous split of `t` (times in build order) into N stacks.
+   solveSplit(t, N, cost, cap) minimizes cost over splits whose stacks are all ≤ cap. */
+function solveSplit(t, N, cost, cap = Infinity) {
+  const n = t.length;
+  if (N < 1 || N > n) return null;
+  const pre = [0]; for (const x of t) pre.push(pre[pre.length - 1] + x);
+  let prev = new Array(n + 1).fill(null); prev[0] = { v: 0, cuts: [] };
+  for (let k = 1; k <= N; k++) {
+    const cur = new Array(n + 1).fill(null);
+    for (let i = k; i <= n - (N - k); i++) {
+      for (let j = k - 1; j < i; j++) {
+        const p = prev[j], s = pre[i] - pre[j];
+        if (!p || s > cap + 1e-9) continue;
+        const v = cost(p.v, s);
+        if (!cur[i] || v < cur[i].v - 1e-9) cur[i] = { v, cuts: j > 0 ? [...p.cuts, j] : [] };
+      }
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+/* Smallest possible largest stack; ties go to the most even split (lowest sum of squares). */
+function bestSplit(t, N) {
+  const a = solveSplit(t, N, (v, s) => Math.max(v, s));
+  if (!a) return null;
+  const b = solveSplit(t, N, (v, s) => v + s * s, a.v);
+  return { max: a.v, cuts: b.cuts };
+}
+/* Total seconds above `top`, minimized over splits: zero exactly when some split fits. */
+const minExcess = (t, N, top) => (solveSplit(t, N, (v, s) => v + Math.max(0, s - top)) || { v: Infinity }).v;
+
+function answerKeyFor(c, N) {
+  const ids = c.elements.map(e => e.id), map = elementMap(c), top = takt(c) - designTargets(c).slack;
+  N = Math.max(1, Math.min(N, ids.length));
+  /* Keep the doc's key while it still fits with the same slack the design check asks for; otherwise use the best split. */
+  if (validSplit(c.elements, ANSWER_KEY) && ANSWER_KEY.length === N && ANSWER_KEY.every(s => stackLoad(map, s) <= top + 1e-9)) return ANSWER_KEY;
+  const b = bestSplit(ids.map(id => +map[id].time || 0), N);
+  return b ? stacksFromCuts(ids, b.cuts) : null;
+}
+
+/* The five rules a working game needs, each with a specific fix. Works on any config, so it can check proposals too. */
+function designChecks(c) {
+  const T = takt(c), tg = designTargets(c), els = c.elements, ids = els.map(e => e.id), map = elementMap(c);
+  const t = els.map(e => +e.time || 0), W = sumOf(t);
+  const r1 = r1Stations(c), n1 = r1.length, N = Math.max(1, n1 - 1), top = T - tg.slack;
+  const nums = [...new Set(els.map(e => +e.r1 || 1))].sort((a, b) => a - b);
+  const lo = T * (N - 1), hi = T * N;
+  const out = [];
+  const add = (key, ok, title, detail, fix) => out.push({ key, ok, title, detail, fix: ok ? '' : fix });
+
+  const r1ok = validSplit(els, r1) && n1 >= 2;
+  add('order', r1ok, 'Round 1 stations follow build order',
+    validSplit(els, r1) ? `${n1} stations: ${r1.map((s, i) => `S${i + 1} ${s.join('')}`).join(' · ')}` : 'An R1 station number goes down somewhere between A and M.',
+    n1 < 2 ? 'Use at least 2 Round 1 stations.' : 'In the card table, make the R1 station numbers stay the same or go up from A to M.');
+
+  const needOps = Math.ceil(W / T - 1e-9);
+  const biggest = [...els].sort((a, b) => (+b.time || 0) - (+a.time || 0)).slice(0, 3).map(e => `${e.id} ${fmtNum(+e.time)} s`).join(', ');
+  add('window', W > lo + 1e-9 && W <= hi + 1e-9, `Total work needs ${N} operators`,
+    `${fmtNum(W)} s ÷ ${fmtNum(T)} s takt = ${(W / T).toFixed(1)} → ${needOps} operators. ${N} operators (one fewer than Round 1's ${n1}) needs more than ${fmtNum(lo)} s and at most ${fmtNum(hi)} s.`,
+    W > hi ? `Trim ${fmtNum(W - hi)} s in total, for example from the longest cards (${biggest}).` : `Add ${fmtNum(lo + 1 - W)} s in total, or the team will find ${needOps} operators is enough.`);
+
+  const longest = els.reduce((a, e) => ((+e.time || 0) > (+a.time || 0) ? e : a), els[0]);
+  add('longest', (+longest.time || 0) <= top + 1e-9, `Every card fits under takt with ${fmtNum(tg.slack)} s to spare`,
+    `Longest card: ${longest.id} at ${fmtNum(+longest.time)} s (limit ${fmtNum(top)} s).`,
+    `Shorten ${longest.id} to ${fmtNum(top)} s or less, or split it into two cards.`);
+
+  const b = bestSplit(t, N), stacks = b ? stacksFromCuts(ids, b.cuts) : [];
+  const loads = stacks.map(s => stackLoad(map, s));
+  const over = stacks.map((s, i) => ({ s, i, load: loads[i] })).filter(x => x.load > top + 1e-9);
+  add('split', !!b && !over.length, `A ${N}-operator split fits under takt`,
+    b ? `Best split: ${stacks.map((s, i) => `Op ${i + 1} ${s.join('+')} = ${fmtNum(loads[i])} s`).join(' · ')}. Each stack must be ${fmtNum(top)} s or less (${fmtNum(tg.slack)} s under takt, so the team has room).`
+      : 'There are fewer cards than operators.',
+    over.map(x => `Op ${x.i + 1} (${x.s.join('+')}) is ${fmtNum(x.load - top)} s over: trim ${x.s.length > 1 ? 'one of ' + x.s.join(', ') : x.s[0]} by ${fmtNum(x.load - top)} s`).join('; ') + '.');
+
+  const r1loads = r1.map(s => stackLoad(map, s)), bmax = Math.max(...r1loads), bi = r1loads.indexOf(bmax), need = T + tg.margin;
+  add('bottleneck', bmax >= need - 1e-9, 'Round 1 has a clear bottleneck',
+    `S${bi + 1} = ${fmtNum(bmax)} s, ${fmtNum(bmax - T)} s over takt. The chart needs it at least ${fmtNum(tg.margin)} s over (${fmtNum(need)} s) so the pile-up is obvious.`,
+    `Add ${fmtNum(need - bmax)} s to S${bi + 1}'s cards (${r1[bi].join(', ')})` + (bi + 1 < n1 ? `, or move ${r1[bi + 1][0]} into S${bi + 1} by setting its R1 station to ${nums[bi]}` : '') + '.');
+
+  return { checks: out, ok: out.every(x => x.ok), N, T, W, top, stacks, loads, r1loads };
+}
+
+/* Whole-second card times as close as possible to `base` (measured) that pass every design check.
+   Deterministic hill-climb: constraint violations cost 100 per second, each second away from the
+   (scaled) measurement costs 1. Single ±1 moves first, then +1/−1 pairs that keep the total. */
+function fitCardTimes(base, c) {
+  const T = takt(c), tg = designTargets(c), r1 = r1Stations(c), n1 = r1.length, N = n1 - 1, n = base.length;
+  const fail = msg => ({ times: base.map(x => Math.max(1, Math.round(x))), ok: false, unmet: [msg] });
+  if (!validSplit(c.elements, r1)) return fail('Put the Round 1 stations in build order first (R1 station numbers must not go down from A to M).');
+  if (N < 1) return fail('Round 1 needs at least 2 stations.');
+  const lo = T * (N - 1), hi = T * N, top = T - tg.slack, need = T + tg.margin;
+  const cap = Math.max(1, Math.floor(top + 1e-9));
+  if (N * cap <= lo) return fail(`With ${fmtNum(tg.slack)} s of slack, ${N} stacks can't hold more than ${fmtNum(lo)} s. Lower the slack or change takt.`);
+  const bandLo = Math.min(hi, Math.floor(lo + 1e-9) + 2), bandHi = Math.max(bandLo, Math.min(hi, N * cap));
+  const W0 = sumOf(base);
+  const target = W0 < bandLo ? bandLo : W0 > bandHi ? bandHi : W0;
+  const goal = base.map(m => (W0 > 0 ? m * target / W0 : target / n));
+  const st = r1.flatMap((s, si) => s.map(() => si));
+  /* Rule violations (in seconds) are scored separately from closeness, so a big deviation can never hide a broken rule. */
+  const score = t => {
+    let W = 0; const loads = new Array(n1).fill(0);
+    for (let i = 0; i < n; i++) { W += t[i]; loads[st[i]] += t[i]; }
+    let viol = W <= lo ? lo + 1 - W : W > hi ? W - hi : 0;
+    viol += minExcess(t, N, top);
+    const bmax = Math.max(...loads); if (bmax < need) viol += need - bmax;
+    let dev = 0; for (let i = 0; i < n; i++) dev += Math.abs(t[i] - goal[i]);
+    return { viol, dev, p: viol * 1000 + dev };
+  };
+  const ok = v => v >= 1 && v <= cap;
+  const climb = start => {
+    let t = start, cur = score(t);
+    for (let iter = 0; iter < 2000; iter++) {
+      let best = null, bestS = null;
+      const consider = cand => { const s2 = score(cand); if (s2.p < (bestS ? bestS.p : cur.p) - 1e-9) { best = cand; bestS = s2; } };
+      for (let i = 0; i < n; i++) for (const dl of [1, -1]) if (ok(t[i] + dl)) { const cand = t.slice(); cand[i] += dl; consider(cand); }
+      if (!best) for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        if (i !== j && ok(t[i] + 1) && ok(t[j] - 1)) { const cand = t.slice(); cand[i]++; cand[j]--; consider(cand); }
+      }
+      if (!best && cur.viol > 0) {
+        /* Some fixes need three cards to move together (e.g. trim I, add to K, trim L). */
+        for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) for (let k = j + 1; k < n; k++) {
+          for (const [a, b2, c2] of [[1, -1, -1], [-1, 1, -1], [-1, -1, 1], [1, 1, -1], [1, -1, 1], [-1, 1, 1]]) {
+            if (ok(t[i] + a) && ok(t[j] + b2) && ok(t[k] + c2)) { const cand = t.slice(); cand[i] += a; cand[j] += b2; cand[k] += c2; consider(cand); }
+          }
+        }
+      }
+      if (!best) break;
+      t = best; cur = bestS;
+    }
+    return { t, s: cur };
+  };
+  let bestRun = climb(goal.map(g => Math.min(cap, Math.max(1, Math.round(g)))));
+  /* Still stuck on a rule? Nudge a few cards and search again. The PRNG is seeded from the
+     input, so the same measurements always give the same answer. */
+  let seed = (Math.round(sumOf(base) * 1000) ^ 0x9e3779b9) >>> 0;
+  const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  for (let kick = 0; kick < 60 && bestRun.s.viol > 0; kick++) {
+    const t = bestRun.t.slice(), moves = 3 + Math.floor(rnd() * 4);
+    for (let m = 0; m < moves; m++) { const i = Math.floor(rnd() * n); t[i] = Math.min(cap, Math.max(1, t[i] + (rnd() < 0.5 ? -1 : 1) * (1 + Math.floor(rnd() * 2)))); }
+    const r = climb(t);
+    if (r.s.p < bestRun.s.p) bestRun = r;
+  }
+  const t = bestRun.t;
+  const res = designChecks({ ...c, elements: c.elements.map((e, i) => ({ ...e, time: t[i] })) });
+  return { times: t, ok: res.ok, unmet: res.checks.filter(x => !x.ok).map(x => `${x.title}: ${x.fix}`), checks: res };
+}
+
+/* Pilot timing */
+function pilotLap(live, now) {
+  const lap = Math.max(0, Math.round((now - live.stepStart) / 100) / 10);
+  return { ...live, laps: [...live.laps, lap], stepStart: now };
+}
+function pilotUndo(live, now) {
+  if (!live.laps.length) return live;
+  const last = live.laps[live.laps.length - 1];
+  return { ...live, laps: live.laps.slice(0, -1), stepStart: live.stepStart - last * 1000 };
+}
+function median(a) { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+function pilotSummary(runs, n) {
+  const inc = (runs || []).filter(r => r.include !== false && Array.isArray(r.times) && r.times.length === n);
+  const useMedian = inc.length >= 3;
+  const center = [], spread = [], flag = [];
+  for (let i = 0; i < n; i++) {
+    const v = inc.map(r => r.times[i]).filter(isNum);
+    if (!v.length) { center.push(null); spread.push(null); flag.push(false); continue; }
+    const cval = useMedian ? median(v) : sumOf(v) / v.length, sp = Math.max(...v) - Math.min(...v);
+    center.push(Math.round(cval * 10) / 10); spread.push(Math.round(sp * 10) / 10);
+    flag.push(v.length >= 2 && (sp > 4 || sp > 0.3 * cval));
+  }
+  const complete = center.every(isNum);
+  return { count: inc.length, useMedian, center, spread, flag, complete, total: complete ? Math.round(sumOf(center) * 10) / 10 : null };
+}
+const stallPrompts = d => {
+  const n1 = d.r1.length, s1 = splitStats(d, d.r1), bn = s1.bottleneck, last = d.r1[bn][d.r1[bn].length - 1];
+  const tail = n1 >= 2 ? [...d.r1[n1 - 2], ...d.r1[n1 - 1]] : [];
+  return [
+    '"Which stack is over the line? Which stacks have room?"',
+    n1 >= 2 ? `"Can S${n1 - 1} and S${n1} be one person?" (${tail.join(' + ')} = ${fmtNum(stackLoad(d.map, tail))} s)` : null,
+    last === 'K' && bn === 3 ? '"Can S4\'s tape move to the next station?"' : `"Can S${bn + 1}'s last card (${last}) move to the next station?"`,
+    'Show the answer key.',
+  ].filter(Boolean);
+};
+
+
+/* ============================================================
+   3. State, persistence, import/export
+   ============================================================ */
+function newRound() {
+  return { clock: newClock(), ended: false, fired: [], taggedStart: null, taggedShip: null, didNotShip: false,
+    good: 0, defects: Object.fromEntries(CHECKS.map(k => [k.key, 0])), wip: {}, idle: {}, log: [] };
+}
+function freshState(keep) {
+  const now = new Date();
+  return {
+    version: 1,
+    createdAt: now.toISOString(),
+    sessionName: 'Flow game ' + now.toISOString().slice(0, 10),
+    config: keep ? clone(keep.config) : { roundSeconds: 300, demand: 10, batchSize: 5, idleInterval: 30, elements: clone(DEFAULT_ELEMENTS), design: { ...DESIGN_DEFAULTS }, pilot: { who: '', runs: [], live: null }, prevTimes: null },
+    rebalance: null,
+    r2Stations: null,
+    answerRevealed: false,
+    biggestOverride: null,
+    materials: {},
+    roles: {},
+    session: { clock: newClock(), fired: [] },
+    rounds: { 1: newRound(), 2: newRound() },
+    ui: keep ? { ...clone(keep.ui), tab: 'setup' } : { tab: 'setup', runRound: 1, sheetsRound: 1, balanceMode: 'r1', projector: false, sound: true, theme: 'auto' },
+  };
+}
+function deepMerge(base, over) {
+  if (Array.isArray(base)) return Array.isArray(over) ? over : base;
+  if (base && typeof base === 'object') {
+    const out = { ...base };
+    if (over && typeof over === 'object' && !Array.isArray(over)) for (const k of Object.keys(over)) out[k] = k in base ? deepMerge(base[k], over[k]) : over[k];
+    return out;
+  }
+  return over === undefined ? base : over;
+}
+function normalize(s) {
+  const f = freshState();
+  if (!s || typeof s !== 'object') return f;
+  const m = deepMerge(f, s);
+  if (!Array.isArray(m.config.elements) || !m.config.elements.length) m.config.elements = clone(DEFAULT_ELEMENTS);
+  for (const n of [1, 2]) m.rounds[n] = deepMerge(newRound(), m.rounds[n]);
+  return m;
+}
+let storageOk = true;
+function load() {
+  let s = null;
+  try { const raw = localStorage.getItem(STORE_KEY); if (raw) s = JSON.parse(raw); } catch (e) { storageOk = false; }
+  return normalize(s);
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); storageOk = true; } catch (e) { storageOk = false; }
+}
+function download(name, text, type) {
+  const blob = new Blob([text], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+const fileStem = () => (state.sessionName || 'flow-game').replace(/[^\w-]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'flow-game';
+function exportJSON() { download(fileStem() + '.json', JSON.stringify(state, null, 2), 'application/json'); }
+function csvCell(v) { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+function buildCSV(st) {
+  const d = derive(st), c = d.c, rows = [];
+  const add = (...cells) => rows.push(cells.map(csvCell).join(','));
+  add('Session', st.sessionName); add('Exported', new Date().toISOString());
+  add('Takt (s)', d.T); add('Work content (s)', d.W); add('Operators needed', d.N);
+  add();
+  add('Metrics board', 'Target', 'Round 1', 'Round 2', 'Change');
+  for (const r of metricsRows(st, d)) add(r.label, r.target, fmtMetric(r.r1, r.unit), fmtMetric(r.r2, r.unit), fmtChange(r.change, r.unit));
+  add();
+  add('Timekeeper', 'Tagged started (clock)', 'Tagged shipped (clock)', 'Lead time (s)');
+  for (const n of [1, 2]) { const r = st.rounds[n]; add('Round ' + n, isNum(r.taggedStart) ? fmtClock(r.taggedStart) : '', isNum(r.taggedShip) ? fmtClock(r.taggedShip) : '', fmtMetric(leadTime(r, c))); }
+  add();
+  const times = wipTimes(c).map(fmtClock);
+  for (const n of [1, 2]) {
+    const k = n === 1 ? d.r1.length : d.r2.length, r = st.rounds[n];
+    add(`WIP Round ${n}`, ...times);
+    wipKeys(k).forEach(key => add(key === 'out' ? 'Customer outbox' : stationLabel(n, +key.slice(2) - 1), ...(r.wip[key] || [null, null, null]).map(v => (isNum(v) ? v : ''))));
+    add('Total', ...[0, 1, 2].map(col => wipTotal(r, k, col) ?? ''));
+  }
+  add();
+  add('Idle tallies', 'Round 1', 'Round 2');
+  const i1 = idleByStation(st.rounds[1], d.r1.length, scanCount(c)), i2 = idleByStation(st.rounds[2], d.r2.length, scanCount(c));
+  for (let i = 0; i < Math.max(i1.length, i2.length); i++) add(`S${i + 1} / Op ${i + 1}`, i1[i] ?? '', i2[i] ?? '');
+  add();
+  add('Defects', ...CHECKS.map(k => k.label), 'Total');
+  for (const n of [1, 2]) { const r = st.rounds[n]; add('Round ' + n, ...CHECKS.map(k => r.defects[k.key] || 0), defectTotal(r)); }
+  add();
+  add('Element', 'Name', 'Time (s)', 'Round 1 station', 'Round 2 station');
+  for (const e of c.elements) add(e.id, e.name, e.time, 'S' + (d.r1.findIndex(s => s.includes(e.id)) + 1), 'Op ' + (d.r2.findIndex(s => s.includes(e.id)) + 1));
+  return rows.join('\n');
+}
+
+/* ============================================================
+   4. Derived view model
+   ============================================================ */
+function derive(st) {
+  const c = st.config;
+  const map = elementMap(c);
+  const r1 = r1Stations(c);
+  const r1Valid = validSplit(c.elements, r1);
+  const N = operatorsNeeded(c), key = answerKeyFor(c, N);
+  let r2 = st.r2Stations, r2Source = 'team';
+  if (!validSplit(c.elements, r2)) { r2 = key || r1; r2Source = 'key'; }
+  const colorIdx = Object.fromEntries(r1.flatMap((s, i) => s.map(id => [id, i])));
+  return { c, map, T: takt(c), W: workContent(c), N, r1, r1Valid, r2, r2Source, key, colorIdx };
+}
+const colorOf = (d, id) => PALETTE[(d.colorIdx[id] ?? 0) % PALETTE.length].hex;
+function getRebalance(d) {
+  if (validSplit(d.c.elements, state.rebalance)) return state.rebalance;
+  return d.r1Valid ? clone(d.r1) : [d.c.elements.map(e => e.id)];
+}
+function ensureRound(n, d) {
+  const r = state.rounds[n], k = n === 1 ? d.r1.length : d.r2.length, scans = scanCount(d.c);
+  for (const key of wipKeys(k)) {
+    if (!Array.isArray(r.wip[key])) r.wip[key] = [key === 'out' ? 0 : (n === 1 ? d.c.batchSize : 1), null, null];
+  }
+  for (let i = 1; i <= k; i++) {
+    const a = Array.isArray(r.idle[i]) ? r.idle[i] : [];
+    while (a.length < scans) a.push(false);
+    r.idle[i] = a;
+  }
+}
+
+/* ============================================================
+   5. Views
+   ============================================================ */
+let state = load();
+const ui = { confirm: null, confirmTimer: null, cue: { 1: null, 2: null }, cueFlash: false, selected: null, proposal: null, pilotSpace: false, dragging: false, pendingRender: false, suppressClick: false, toastTimer: null };
+const TABS = [['setup', 'Setup'], ['times', 'Card times'], ['agenda', 'Script'], ['run', 'Run round'], ['balance', 'Balance chart'], ['sheets', 'Station sheets'], ['results', 'Results']];
+
+function btn(action, label, { cls = '', attrs = '', confirm = false, disabled = false, title = '' } = {}) {
+  const key = confirm ? action + (attrs.match(/data-[\w-]+="[^"]*"/g) || []).join('') : '';
+  const arming = confirm && ui.confirm === key;
+  return `<button class="btn ${cls} ${arming ? 'confirming' : ''}" data-action="${action}" ${confirm ? `data-confirm="${esc(key)}"` : ''} ${attrs} ${disabled ? 'disabled' : ''} ${title ? `title="${esc(title)}"` : ''}>${arming ? 'Click again to confirm' : label}</button>`;
+}
+/* Numbers use a text input with a numeric keypad: type="number" can't report or restore the
+   caret, and it hides half-typed values like "7." from scripts. */
+function numInput(bind, value, { min = 0, cls = 'w-num', placeholder = '' } = {}) {
+  return `<input type="text" class="${cls}" data-bind="${bind}" data-type="num" data-min="${min}" value="${isNum(value) ? value : ''}" placeholder="${placeholder}" inputmode="decimal" autocomplete="off" spellcheck="false">`;
+}
+const tile = (label, value, cls = '') => `<div class="tile ${cls}"><span>${label}</span><b>${value}</b></div>`;
+
+function renderChrome() {
+  document.getElementById('tabs').innerHTML = TABS.map(([k, l]) => `<button data-action="tab" data-tab="${k}" class="${state.ui.tab === k ? 'active' : ''}">${l}</button>`).join('');
+  const theme = state.ui.theme;
+  document.getElementById('tools').innerHTML = [
+    btn('toggle-sound', state.ui.sound ? 'Sound on' : 'Sound off', { cls: 'sm', title: 'Beep on round cues' }),
+    btn('cycle-theme', 'Theme: ' + theme, { cls: 'sm' }),
+    btn('toggle-projector', 'Projector (P)', { cls: 'sm' }),
+    btn('export-json', 'Save session', { cls: 'sm', title: 'Download this session as JSON' }),
+    btn('import-json', 'Load session', { cls: 'sm', title: 'Load a saved session JSON' }),
+    btn('export-csv', 'Export CSV', { cls: 'sm' }),
+    btn('new-session', 'New session', { cls: 'sm danger', confirm: true, title: 'Saves a copy, then clears all game data (keeps setup)' }),
+  ].join('');
+  document.body.classList.toggle('projector', !!state.ui.projector);
+  if (theme === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme;
+}
+
+/* ---------- Setup ---------- */
+function viewSetup(d) {
+  const c = d.c, s1 = splitStats(d, d.r1);
+  const dc = designChecks(c), bad = dc.checks.filter(k => !k.ok);
+  return `
+  <div class="grid">
+    <section class="card span-all">
+      <div class="row"><h2 class="sp">Game setup</h2>${btn('reset-config', 'Reset to doc values', { cls: 'sm danger', confirm: true })}</div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-top:6px">
+        <label>Session name<input type="text" data-bind="sessionName" value="${esc(state.sessionName)}"></label>
+        <label>Round length (s)${numInput('config.roundSeconds', c.roundSeconds, { min: 10, cls: '' })}</label>
+        <label>Customer demand (good planes / round)${numInput('config.demand', c.demand, { min: 1, cls: '' })}</label>
+        <label>Round 1 batch size${numInput('config.batchSize', c.batchSize, { min: 1, cls: '' })}</label>
+        <label>Idle scan every (s)${numInput('config.idleInterval', c.idleInterval, { min: 5, cls: '' })}</label>
+      </div>
+      <div class="tiles" style="margin-top:14px">
+        ${tile('Takt time', fmtNum(d.T) + ' s')}
+        ${tile('Total work content', fmtNum(d.W) + ' s')}
+        ${tile('Operators needed', `${fmtNum(d.W)} ÷ ${fmtNum(d.T)} = ${(d.W / d.T).toFixed(1)} → ${d.N}`)}
+        ${tile('Round 1 bottleneck', `S${s1.bottleneck + 1} · ${fmtNum(s1.maxLoad)} s`, s1.maxLoad > d.T ? 'bad' : '')}
+        ${tile('WIP checks', wipTimes(c).map(fmtClock).join(' · '))}
+        ${tile('Idle scans / round', scanCount(c))}
+      </div>
+      <div class="msg ${bad.length ? 'warn' : 'ok'}" style="margin-top:12px"><div class="row">
+        <span class="sp">${bad.length ? `<b>Card times: ${bad.length} problem${bad.length > 1 ? 's' : ''}.</b> ${esc(bad.map(k => '✗ ' + k.title).join(' · '))}` : '<b>Card times are ready.</b> Every design check passes.'}</span>
+        ${btn('goto', bad.length ? 'Fix on Card times →' : 'Card times →', { cls: 'sm', attrs: 'data-tab="times"' })}</div></div>
+    </section>
+
+    <div class="span-all grid pair">
+    <section class="card">
+      <h2>Roles</h2>
+      <div class="tbl-wrap"><table class="roles stack">
+        <colgroup><col style="width:31%"><col style="width:6em"><col style="width:7.5em"><col></colgroup>
+        <thead><tr><th>Role</th><th class="c">Round 1</th><th class="c">Round 2</th><th>Who</th></tr></thead>
+        <tbody>${ROLES.map(r => `<tr><td class="full"><b>${r.label}</b><div class="muted small">${esc(r.job)}</div></td><td class="c" data-label="Round 1">${r.r1}</td><td class="c" data-label="Round 2">${r.r2}</td><td class="full" data-label="Who"><input type="text" data-bind="roles.${r.key}" value="${esc(state.roles[r.key] || '')}" placeholder="${r.key === 'operators' ? 'Names, comma separated' : 'Name'}"></td></tr>`).join('')}</tbody>
+      </table></div>
+    </section>
+
+    <section class="card">
+      <h2>Materials and room setup</h2>
+      <div class="checklist">${MATERIALS.map((m, i) => `<label class="chk"><input type="checkbox" data-bind="materials.m${i}" ${state.materials['m' + i] ? 'checked' : ''}><span>${esc(m)}</span></label>`).join('')}</div>
+      <div class="lbl">Before the team arrives</div>
+      <div class="checklist">${SETUP_STEPS.map((m, i) => `<label class="chk"><input type="checkbox" data-bind="materials.s${i}" ${state.materials['s' + i] ? 'checked' : ''}><span>${esc(m)}</span></label>`).join('')}</div>
+      <div class="row" style="margin-top:10px">${btn('goto', 'Preview and print station sheets →', { cls: 'sm', attrs: 'data-tab="sheets"' })}</div>
+    </section>
+    </div>
+  </div>`;
+}
+
+/* ---------- Card times: pilot timer → design checks → auto-fit ---------- */
+function checksList(res) {
+  return `<ul class="checks">${res.checks.map(k => `<li class="${k.ok ? 'ok' : 'bad'}"><span class="ic" aria-hidden="true">${k.ok ? '✓' : '✗'}</span><div>
+    <b>${esc(k.title)}</b><div class="small muted">${esc(k.detail)}</div>${k.ok ? '' : `<div class="small fix"><b>Fix:</b> ${esc(k.fix)}</div>`}</div></li>`).join('')}</ul>`;
+}
+function pilotPanel(d) {
+  const c = d.c, p = c.pilot, live = p.live, n = c.elements.length;
+  if (live) {
+    const i = Math.min(live.laps.length, n - 1), el = c.elements[i], nx = c.elements[i + 1];
+    return `<div class="pilot-live">
+      <div class="muted">Plane ${p.runs.length + 1}${live.who ? ' · ' + esc(live.who) : ''} · step ${i + 1} of ${n}</div>
+      <div class="pilot-now"><span class="card-letter" style="background:${colorOf(d, el.id)}">${esc(el.id)}</span><span>${esc(el.name)}</span></div>
+      <div class="row" style="align-items:baseline"><span class="big-clock pilot-clock" data-clock="pilot-step">0.0</span>
+        <span class="muted">s on this step · plane total <b class="num" data-clock="pilot-total">0.0</b> s</span></div>
+      <div class="muted">Next: ${nx ? `<b>${esc(nx.id)}</b> · ${esc(nx.name)}` : '<b>last step</b>. The plane is saved after this tap.'}</div>
+      <div class="row" style="margin-top:12px">
+        ${btn('pilot-step', `Step ${esc(el.id)} done <span class="small" style="opacity:.75">(Space)</span>`, { cls: 'primary big pilot-go' })}
+        ${btn('pilot-undo', 'Undo step <span class="small muted">(Backspace)</span>', { disabled: !live.laps.length })}
+        ${btn('pilot-discard', 'Discard plane', { cls: 'danger', confirm: true })}
+      </div>
+      ${live.laps.length ? `<div class="laps small">${live.laps.map((l, j) => `<span><b>${esc(c.elements[j].id)}</b> ${fmtNum(l)} s</span>`).join('')}</div>` : ''}
+    </div>`;
+  }
+  return `<div class="row" style="align-items:flex-end">
+      <label style="flex:1;min-width:200px">Who's building this plane?<input type="text" data-bind="config.pilot.who" value="${esc(p.who || '')}" placeholder="Tech name"></label>
+      ${btn('pilot-start', `Start plane ${p.runs.length + 1}`, { cls: 'primary big' })}
+    </div>
+    <p class="muted small" style="margin:8px 0 0">A tech builds a whole plane at a normal pace while you tap <b>Step done</b> (or press Space) the moment each step finishes. Time at least 3 planes, ideally from 2 different techs; the app uses the median.</p>`;
+}
+function pilotTable(d, sum) {
+  const c = d.c, runs = c.pilot.runs;
+  if (!runs.length) return '';
+  return `<div class="tbl-wrap" style="margin-top:14px"><table class="pilot">
+    <thead><tr><th>Card</th>${runs.map((r, ri) => `<th class="c"><div>Plane ${ri + 1}</div><div class="small muted">${esc(r.who || '')}</div>
+        <div class="row" style="justify-content:center;gap:2px 4px"><label class="small" style="white-space:nowrap" title="Include in the ${sum.useMedian ? 'median' : 'average'}"><input type="checkbox" data-bind="config.pilot.runs.${ri}.include" ${r.include !== false ? 'checked' : ''}> use</label>
+        ${btn('pilot-delete', '×', { cls: 'sm', confirm: true, attrs: `data-run="${ri}"`, title: 'Delete this plane' })}</div></th>`).join('')}
+      <th class="n">${sum.useMedian ? 'Median' : 'Average'}</th><th class="n">Spread</th></tr></thead>
+    <tbody>${c.elements.map((e, i) => `<tr><td><b>${esc(e.id)}</b> <span class="muted small el-name">${esc(e.name)}</span></td>
+      ${runs.map((r, ri) => `<td class="c">${numInput(`config.pilot.runs.${ri}.times.${i}`, r.times[i], { cls: 'w-cell' })}</td>`).join('')}
+      <td class="n"><b>${fmtNum(sum.center[i])}</b></td>
+      <td class="n ${sum.flag[i] ? 'flag' : ''}" ${sum.flag[i] ? 'title="Big spread between planes: time this step again"' : ''}>${sum.flag[i] ? '⚠ ' : ''}${fmtNum(sum.spread[i])}</td></tr>`).join('')}</tbody>
+    <tfoot><tr class="total"><td>Total</td>${runs.map(r => `<td class="c">${fmtNum(sumOf(r.times.filter(isNum)))}</td>`).join('')}<td class="n">${fmtNum(sum.total)}</td><td></td></tr></tfoot>
+  </table></div>
+  ${sum.flag.some(Boolean) ? '<p class="small" style="color:var(--warn);margin:6px 0 0">⚠ Steps marked with a big spread vary a lot between planes. Time another plane, or untick an unusual one.</p>' : ''}
+  ${sum.count && sum.count < 3 ? `<p class="small muted" style="margin:6px 0 0">${sum.count} plane${sum.count > 1 ? 's' : ''} timed. 3 or more gives a steadier median.</p>` : ''}`;
+}
+function fitBase(d) {
+  const sum = pilotSummary(d.c.pilot.runs, d.c.elements.length);
+  return sum.count && sum.complete
+    ? { base: sum.center, source: `the ${sum.useMedian ? 'median' : 'average'} of ${sum.count} timed plane${sum.count > 1 ? 's' : ''}`, measured: true }
+    : { base: d.c.elements.map(e => +e.time || 0), source: 'the current card times (no pilot planes yet)', measured: false };
+}
+function fitPanel(d) {
+  const c = d.c, p = ui.proposal, fb = fitBase(d);
+  let out = `<p style="margin:0 0 10px">Suggests whole-second card times as close as possible to ${esc(fb.source)} that pass every design check.</p>
+    <div class="row">${btn('fit-suggest', 'Suggest card times', { cls: 'primary' })}
+      ${fb.measured ? btn('fit-measured', 'Use measured as-is', { title: 'Round the measured times to whole seconds without fitting' }) : ''}
+      ${c.prevTimes ? btn('fit-undo', 'Undo last change') : ''}</div>`;
+  if (!p) return out;
+  const cfg2 = { ...c, elements: c.elements.map((e, i) => ({ ...e, time: p.times[i] })) };
+  const d2 = derive({ ...state, config: cfg2, r2Stations: null });
+  const key2 = d2.key || d2.r1;
+  const maxV = niceMax(Math.max(d2.T, ...splitStats(d2, d2.r1).loads, ...splitStats(d2, key2).loads) * 1.18);
+  const changed = c.elements.filter((e, i) => p.times[i] !== +e.time);
+  const N2 = d2.r1.length - 1, lo2 = d.T * (N2 - 1), hi2 = d.T * N2, mT = sumOf(p.base);
+  const scaleNote = mT > hi2 + 1e-9 || mT <= lo2
+    ? `<p class="small" style="margin:12px 0 0"><b>Why everything ${mT > hi2 ? 'shrank' : 'grew'}:</b> ${fb.measured ? 'the pilot' : 'the cards'} total ${fmtNum(mT)} s, but ${N2} operators at a ${fmtNum(d.T)} s takt need more than ${fmtNum(lo2)} s and at most ${fmtNum(hi2)} s. The cards are scaled to fit while keeping each step's share of the work. Cards are a model of the work, so the lesson is the same. To keep real times instead, change customer demand on Setup (takt = round length ÷ demand).</p>`
+    : '';
+  out += scaleNote + `<div class="msg ${p.ok ? 'ok' : 'bad'}" style="margin:14px 0 10px">${p.ok
+      ? `<b>These times pass every check.</b> ${changed.length ? `${changed.length} card${changed.length > 1 ? 's' : ''} change.` : 'No changes needed.'}`
+      : `<b>Couldn't meet every check.</b> ${esc(p.unmet.join(' '))}`}</div>
+    <div class="tbl-wrap"><table class="fit">
+      <thead><tr><th>Card</th><th class="n">${fb.measured ? 'Measured' : 'Starting'}</th><th class="n">Card now</th><th class="n">Proposed</th><th class="n">Change</th></tr></thead>
+      <tbody>${c.elements.map((e, i) => {
+        const dl = p.times[i] - (+e.time || 0);
+        return `<tr class="${dl ? 'chg' : ''}"><td><b>${esc(e.id)}</b> <span class="muted small el-name">${esc(e.name)}</span></td><td class="n">${fmtNum(p.base[i])}</td><td class="n">${fmtNum(+e.time)}</td>
+          <td class="n"><b>${p.times[i]}</b></td><td class="n" style="white-space:nowrap">${dl ? `${dl > 0 ? '+' : '−'}${Math.abs(dl)} <span class="muted small">· re-cut ${fmtNum(p.times[i] / 2)} cm</span>` : '—'}</td></tr>`;
+      }).join('')}</tbody>
+      <tfoot><tr class="total"><td>Total</td><td class="n">${fmtNum(sumOf(p.base))}</td><td class="n">${fmtNum(d.W)}</td><td class="n">${sumOf(p.times)}</td><td></td></tr></tfoot>
+    </table></div>
+    <div class="grid" style="margin-top:12px">
+      <div><div class="lbl">Round 1 with these times</div>${balanceChart(d2, d2.r1, { labelFn: i => 'S' + (i + 1), compact: true, maxV })}</div>
+      <div><div class="lbl">Best ${key2.length}-operator split (answer key)</div>${balanceChart(d2, key2, { labelFn: i => 'Op ' + (i + 1), compact: true, maxV })}</div>
+    </div>
+    <div class="row" style="margin-top:12px">${btn('fit-apply', changed.length ? `Apply ${changed.length} change${changed.length > 1 ? 's' : ''}` : 'Nothing to apply', { cls: 'primary', disabled: !changed.length })}${btn('fit-dismiss', 'Dismiss')}</div>`;
+  return out;
+}
+function elementCardsSection(d, sum) {
+  const c = d.c;
+  return `<section class="card span-all">
+      <h2>Work element cards</h2>
+      <p class="muted small" style="margin:0 0 8px">Card times drive the balance chart and the cut height (1 cm = 2 s; the takt line sits ${fmtNum(d.T / 2)} cm up). Edit them here by hand, or let step 3 fit them.</p>
+      <div class="tbl-wrap"><table class="elements stack">
+        <colgroup><col style="width:7em"><col style="width:25%"><col><col style="width:6.5em"><col style="width:6.5em"><col style="width:6.5em"></colgroup>
+        <thead><tr><th>Card</th><th>Element (card text)</th><th>Station-sheet instruction</th><th class="n">Card time (s)</th><th class="n">Measured</th><th class="n">R1 station</th></tr></thead>
+        <tbody>${c.elements.map((e, i) => {
+          const color = PALETTE[(d.colorIdx[e.id] ?? 0) % PALETTE.length].name, m = sum.center[i];
+          return `
+          <tr>
+            <td class="full"><div class="cell-head"><span class="letter">${esc(e.id)}</span><span class="small muted"><span class="swatch" style="background:${colorOf(d, e.id)}"></span> ${color}<br>cut ${fmtNum((+e.time || 0) / 2)} cm</span></div></td>
+            <td class="full" data-label="Element (card text)"><input type="text" data-bind="config.elements.${i}.name" value="${esc(e.name)}"></td>
+            <td class="full" data-label="Station-sheet instruction"><textarea rows="2" data-bind="config.elements.${i}.step">${esc(e.step)}</textarea></td>
+            <td class="n" data-label="Card time (s)">${numInput(`config.elements.${i}.time`, +e.time, { min: 0 })}</td>
+            <td class="n mid" data-label="Measured">${isNum(m) ? fmtNum(m) : '<span class="muted">—</span>'}</td>
+            <td class="n" data-label="R1 station">${numInput(`config.elements.${i}.r1`, +e.r1, { min: 1 })}</td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+        <tfoot><tr class="total"><td class="hide-sm"></td><td class="full" colspan="2">Total work content: <span class="num">${fmtNum(d.W)} s</span>${isNum(sum.total) ? ` <span class="muted">· measured ${fmtNum(sum.total)} s</span>` : ''}</td><td class="hide-sm" colspan="3"></td></tr></tfoot>
+      </table></div>
+    </section>`;
+}
+function viewTimes(d) {
+  const c = d.c, sum = pilotSummary(c.pilot.runs, c.elements.length), dc = designChecks(c), tg = designTargets(c);
+  const bad = dc.checks.filter(k => !k.ok).length;
+  return `<div class="grid">
+    <section class="card span-all">
+      <h2>1 · Time the pilot build</h2>
+      ${pilotPanel(d)}
+      ${pilotTable(d, sum)}
+    </section>
+    <div class="span-all grid pair">
+      <section class="card">
+        <div class="row"><h2 class="sp">2 · Check the design</h2><span class="pill ${bad ? 'bad' : 'ok'}">${bad ? `${bad} to fix` : '✓ Ready'}</span></div>
+        <p class="muted small" style="margin:0 0 6px">Checks the current card times against takt (${fmtNum(d.T)} s).</p>
+        ${checksList(dc)}
+        <details class="small" style="margin-top:10px"><summary>Design targets</summary>
+          <div class="row" style="margin-top:6px">
+            <label>Slack under takt (s) ${numInput('config.design.slack', tg.slack, { min: 0 })}</label>
+            <label>Bottleneck margin (s) ${numInput('config.design.margin', tg.margin, { min: 0 })}</label>
+          </div>
+          <p class="muted" style="margin:6px 0 0">Slack keeps the best split ${fmtNum(tg.slack)} s under takt, so the team doesn't need a perfect answer. The margin makes the Round 1 bottleneck obvious on the chart.</p>
+        </details>
+      </section>
+      <section class="card">
+        <h2>3 · Fit card times</h2>
+        ${fitPanel(d)}
+      </section>
+    </div>
+    ${elementCardsSection(d, sum)}
+  </div>`;
+}
+function pilotStep() {
+  const p = state.config.pilot;
+  if (!p.live) return;
+  p.live = pilotLap(p.live, Date.now());
+  if (p.live.laps.length >= state.config.elements.length) {
+    p.runs.push({ id: Date.now(), who: p.live.who, times: p.live.laps, include: true, at: new Date().toISOString() });
+    p.live = null; ui.proposal = null;
+    toast(`Plane ${p.runs.length} saved.`);
+  }
+}
+function applyTimes(times, msg) {
+  const els = state.config.elements;
+  const changed = els.filter((e, i) => times[i] !== +e.time).map(e => e.id);
+  state.config.prevTimes = els.map(e => +e.time);
+  els.forEach((e, i) => { e.time = times[i]; });
+  ui.proposal = null;
+  toast(changed.length ? `${msg}. Re-cut card${changed.length > 1 ? 's' : ''} ${changed.join(', ')}.` : `${msg}. No cards changed.`);
+}
+
+/* ---------- Agenda / script ---------- */
+function currentBlock(t) { return AGENDA.find(b => t >= b.start && t < b.end) || (t >= SESSION_SECONDS ? AGENDA[AGENDA.length - 1] : AGENDA[0]); }
+function viewAgenda(d) {
+  const t = clockElapsed(state.session.clock), running = !!state.session.clock.startedAt;
+  const cur = currentBlock(t);
+  const list = (lbl, items, cls = '') => items && items.length ? `<div class="lbl">${lbl}</div>${cls === 'say' ? items.map(s => `<div class="say">${esc(s)}</div>`).join('') : `<ul class="tight">${items.map(s => `<li>${esc(s)}</li>`).join('')}</ul>`}` : '';
+  const blocks = AGENDA.map(b => {
+    const isCur = b === cur;
+    const stallLive = b.stall && t >= STALL_AT && t < b.end;
+    return `<section class="card block ${isCur ? 'cur' : ''}" id="blk-${b.id}">
+      <h3><span class="when">${fmtClock(b.start)}–${fmtClock(b.end)}</span><span>${esc(b.title)}</span><span class="sp"></span>
+        <span class="no-proj">${btn('session-jump', 'Jump here', { cls: 'sm', attrs: `data-t="${b.start}"` })}</span></h3>
+      ${b.rules ? `<div class="lbl">Rules</div><ul class="tight">${b.rules(d).map(r => `<li><b>${esc(r)}</b></li>`).join('')}</ul>` : ''}
+      ${list('Say', b.say && b.say(d), 'say')}
+      ${list('Do', b.do && b.do(d))}
+      ${list('Ask', b.ask && b.ask(d))}
+      ${b.stall ? `<div class="stall ${stallLive ? 'live' : ''}"><b>${stallLive ? 'It is past 18:30. If they are stalled, prompt in this order:' : 'Only if they stall at 18:30, prompt in this order:'}</b>
+        <ol class="tight">${stallPrompts(d).map(p => `<li>${esc(p)}</li>`).join('')}</ol></div>` : ''}
+      ${b.note ? `<div class="msg warn" style="margin-top:10px">${esc(b.note)}</div>` : ''}
+      ${b.link ? `<div class="row no-proj" style="margin-top:10px">${btn('goto', b.link.label + ' →', { cls: 'primary sm', attrs: `data-tab="${b.link.tab}" data-round="${b.link.round || ''}" data-mode="${b.link.mode || ''}"` })}</div>` : ''}
+    </section>`;
+  }).join('');
+  const nxt = AGENDA.find(b => b.start > t);
+  return `
+  <div class="stack-v">
+    <section class="card">
+      <div class="row" style="align-items:flex-end">
+        <div>
+          <div class="muted small">Session clock</div>
+          <div class="big-clock" style="font-size:clamp(44px,8vw,84px)"><span data-clock="session">${fmtClock(t)}</span><span class="muted" style="font-size:.4em"> / ${fmtClock(SESSION_SECONDS)}</span></div>
+        </div>
+        <div class="sp"></div>
+        <div class="row no-proj">
+          ${btn('session-toggle', running ? 'Pause' : (t > 0 ? 'Resume' : 'Start session'), { cls: 'primary big' })}
+          ${btn('session-reset', 'Reset', { confirm: true })}
+        </div>
+      </div>
+      <div class="muted" style="margin-top:6px">Now: <b>${esc(cur.title)}</b>${nxt ? ` · Next: ${esc(nxt.title)} in <span data-clock="session-next">${fmtClock(nxt.start - t)}</span>` : ''}</div>
+      <div class="timeline">
+        ${AGENDA.map(b => `<button style="flex:${b.end - b.start}" class="${b === cur ? 'cur' : ''}" data-action="session-jump" data-t="${b.start}" title="${esc(b.title)}">${esc(b.title)}</button>`).join('')}
+        <div class="marker" data-progress="session-marker" style="left:${Math.min(100, t / SESSION_SECONDS * 100)}%"></div>
+      </div>
+    </section>
+    <details class="card no-proj"><summary><b>Before the team arrives</b></summary><ul class="tight">${SETUP_STEPS.map(s => `<li>${esc(s)}</li>`).join('')}</ul></details>
+    ${blocks}
+  </div>`;
+}
+
+/* ---------- Run round ---------- */
+function hotCols(c, e) {
+  if (e <= 0) return { wip: -1, idle: -1 };
+  const wt = wipTimes(c); let wip = 0;
+  wt.forEach((x, i) => { if (e >= x - 1e-6) wip = i; });
+  const idle = Math.min(scanCount(c), Math.floor(e / c.idleInterval + 1e-6)) - 1;
+  return { wip, idle };
+}
+function viewRun(d) {
+  const n = state.ui.runRound, r = state.rounds[n], c = d.c;
+  ensureRound(n, d);
+  const stations = n === 1 ? d.r1 : d.r2, k = stations.length;
+  const R = c.roundSeconds, e = Math.min(R, clockElapsed(r.clock)), running = !!r.clock.startedAt;
+  const hot = hotCols(c, e), lt = leadTime(r, c), scans = scanCount(c);
+  const wt = wipTimes(c);
+  const idleTotals = idleByStation(r, k, scans);
+  const cue = ui.cue[n];
+  const srcNote = n === 2
+    ? (d.r2Source === 'team' ? `Stations from the team's rebalance (${k} operators).` : `Using the answer key (${k} operators). Set the team's own split on the Balance chart tab.`)
+    : `${k} stations, batches of ${c.batchSize}.`;
+  const startLabel = running ? 'Pause' : r.ended ? 'Round over' : e > 0 ? 'Resume' : `Start Round ${n}`;
+
+  const wipRows = [`<tr><td>${stationLabel(n, 0)} inbox</td><td colspan="${wt.length}" class="c muted small">Blank paper, don't count</td></tr>`]
+    .concat(wipKeys(k).map(key => {
+      const label = key === 'out' ? 'Customer outbox' : stationLabel(n, +key.slice(2) - 1) + ' inbox';
+      return `<tr><td>${label}</td>${wt.map((_, col) => `<td class="c ${hot.wip === col ? 'hotcol' : ''}">${numInput(`rounds.${n}.wip.${key}.${col}`, r.wip[key][col], { cls: 'w-cell' })}</td>`).join('')}</tr>`;
+    }))
+    .concat([`<tr class="total"><td>Total</td>${wt.map((_, col) => `<td class="c ${hot.wip === col ? 'hotcol' : ''}">${fmtMetric(wipTotal(r, k, col))}</td>`).join('')}</tr>`]).join('');
+
+  const idleHead = Array.from({ length: scans }, (_, j) => `<th class="c ${hot.idle === j ? 'hotcol' : ''}">${fmtClock((j + 1) * c.idleInterval)}</th>`).join('');
+  const idleRows = stations.map((_, i) => `<tr><td><b>${stationLabel(n, i)}</b></td>${Array.from({ length: scans }, (_, j) => {
+      const on = r.idle[i + 1][j];
+      return `<td class="c ${hot.idle === j ? 'hotcol' : ''}"><button class="idle-cell ${on ? 'on' : ''}" data-action="idle" data-st="${i + 1}" data-scan="${j}" aria-pressed="${on}" title="${stationLabel(n, i)} at ${fmtClock((j + 1) * c.idleInterval)}">${on ? '✕' : ''}</button></td>`;
+    }).join('')}<td class="n"><b>${idleTotals[i]}</b></td></tr>`).join('');
+  const scanTotals = Array.from({ length: scans }, (_, j) => stations.reduce((s, _, i) => s + (r.idle[i + 1][j] ? 1 : 0), 0));
+
+  return `
+  <div class="row" style="margin-bottom:12px">
+    <div class="seg">${[1, 2].map(x => `<button data-action="run-round" data-round="${x}" class="${n === x ? 'active' : ''}">${x === 1 ? 'Round 1 · Batch and push' : 'Round 2 · One-piece flow'}</button>`).join('')}</div>
+    <span class="muted">${esc(srcNote)}</span>
+  </div>
+  <div class="grid run">
+    <section class="card clock-card"><div class="clock-main">
+      <div class="muted small">Round ${n} · time remaining</div>
+      <div class="big-clock ${r.ended ? 'ended' : ''}" data-clock="round-${n}">${fmtClock(Math.ceil(R - e - 1e-6))}</div>
+      <div class="progress"><div data-progress="round-${n}" style="width:${e / R * 100}%"></div></div>
+      <div class="muted small">Clock <span data-clock="round-${n}-elapsed">${fmtClock(e)}</span> of ${fmtClock(R)}${r.ended ? ' · <b>Stopped. Nobody moves a plane.</b>' : ''}</div>
+      <div class="row no-proj" style="margin:12px 0">
+        ${btn('round-toggle', startLabel + (r.ended ? '' : ' <span class="small" style="opacity:.75">(Space)</span>'), { cls: 'primary big', disabled: r.ended })}
+        ${btn('round-reset', 'Reset clock', { confirm: true, title: 'Clock back to the start. Entered data is kept.' })}
+      </div>
+      </div><div class="clock-side">
+      <div class="cue ${ui.cueFlash ? 'flash' : ''}" data-cue>${cue ? esc(cue) : `<span class="muted">Cues appear here: WIP counts at ${wt.map(fmtClock).join(', ')}, and an idle scan every ${c.idleInterval} s.</span>`}</div>
+      <div class="lbl">Round ${n} rules</div>
+      <ul class="rules">${roundRules(n, d).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+    </div></section>
+
+    <section class="card">
+      <h2>Customer and quality checker</h2>
+      <div class="counter-big">
+        <div><div class="muted small">Good planes shipped</div><div class="val">${r.good}</div></div>
+        <div class="stack-v">
+          ${btn('good', '+1 good plane <span class="small">(G)</span>', { cls: 'primary big' })}
+          <div class="row no-proj">${btn('good-sub', '−1', { cls: 'sm' })}<span class="muted small">Target ${c.demand}</span></div>
+        </div>
+      </div>
+      <div class="lbl">Rejected by customer: tap the check it failed (a defect, not a shipped plane)</div>
+      <div class="defects">${CHECKS.map(k => `<div class="defect" title="Accept: ${esc(k.accept)}&#10;Reject: ${esc(k.reject)}">
+          <button class="add" data-action="defect" data-key="${k.key}"><span class="small">${esc(k.label)}</span><b>${r.defects[k.key] || 0}</b></button>
+          <button class="sub no-proj" data-action="defect-sub" data-key="${k.key}" aria-label="Remove one ${esc(k.label)} defect">−</button></div>`).join('')}</div>
+      <div class="row" style="margin-top:8px"><b>Total defects: ${defectTotal(r)}</b><span class="sp"></span>${btn('undo', 'Undo last tap', { cls: 'sm', disabled: !r.log.length })}</div>
+      <ul class="log" style="margin-top:8px">${r.log.slice(-8).reverse().map(l => `<li><span class="num">${fmtClock(l.t)}</span> · ${esc(logText(l))}</li>`).join('') || '<li class="muted">No taps yet.</li>'}</ul>
+    </section>
+
+    <section class="card">
+      <h2>Timekeeper: tagged plane</h2>
+      <div class="tiles">
+        ${tile('Tag started (clock)', isNum(r.taggedStart) ? fmtClock(r.taggedStart) : '—')}
+        ${tile('Tag shipped (clock)', isNum(r.taggedShip) ? fmtClock(r.taggedShip) : '—')}
+        ${tile('Lead time', fmtMetric(lt, 's'), lt.dns ? 'bad' : '')}
+      </div>
+      <div class="row" style="margin-top:12px">
+        ${btn('tag-ship', isNum(r.taggedShip) ? 'Re-stamp: tagged plane shipped' : 'Tagged plane shipped', { cls: 'primary big', disabled: e <= 0 })}
+        ${btn('tag-start', 'Stamp tag start now', { cls: 'sm', disabled: e <= 0 })}
+      </div>
+      <p class="muted small">The tag start is stamped at 0:00 when the round starts. If the tagged plane hasn't shipped by ${fmtClock(R)}, it is marked "did not ship" and counted as more than ${R} s.</p>
+      <div class="row no-proj small">
+        <label>Start (s) ${numInput(`rounds.${n}.taggedStart`, r.taggedStart)}</label>
+        <label>Ship (s) ${numInput(`rounds.${n}.taggedShip`, r.taggedShip)}</label>
+        <label class="chk"><input type="checkbox" data-bind="rounds.${n}.didNotShip" ${r.didNotShip ? 'checked' : ''}> Did not ship</label>
+      </div>
+    </section>
+
+    <section class="card wip-card">
+      <h2>WIP observer</h2>
+      <p class="muted small" style="margin:0 0 6px">Count every plane sitting between stations (inboxes and stacks), not the one in an operator's hands. 0:00 is pre-filled with the preload.</p>
+      <div class="tbl-wrap"><table class="wip">
+        <thead><tr><th>Round ${n} inbox</th>${wt.map((x, col) => `<th class="c ${hot.wip === col ? 'hotcol' : ''}">${fmtClock(x)}</th>`).join('')}</tr></thead>
+        <tbody>${wipRows}</tbody>
+      </table></div>
+    </section>
+
+    <section class="card idle-card">
+      <div class="row"><h2 class="sp">Idle observer</h2><span class="muted small">Every ${c.idleInterval} s, tap each operator who is waiting (empty inbox) or blocked (can't pass). The current scan is highlighted.</span></div>
+      <div class="tbl-wrap idle-wide"><table class="idle">
+        <thead><tr><th>Station</th>${idleHead}<th class="n">Total</th></tr></thead>
+        <tbody>${idleRows}</tbody>
+        <tfoot><tr class="total"><td>Total</td>${scanTotals.map((v, j) => `<td class="c ${hot.idle === j ? 'hotcol' : ''}">${v}</td>`).join('')}<td class="n">${idleTotals.reduce((a, b) => a + b, 0)}</td></tr></tfoot>
+      </table></div>
+      <div class="tbl-wrap idle-tall"><table class="idle">
+        <thead><tr><th>Scan</th>${stations.map((_, i) => `<th class="c">${stationLabel(n, i).replace(' ', '')}</th>`).join('')}<th class="n">Total</th></tr></thead>
+        <tbody>${Array.from({ length: scans }, (_, j) => `<tr class="${hot.idle === j ? 'hotcol' : ''}"><td class="num"><b>${fmtClock((j + 1) * c.idleInterval)}</b></td>${stations.map((_, i) => {
+          const on = r.idle[i + 1][j];
+          return `<td class="c"><button class="idle-cell ${on ? 'on' : ''}" data-action="idle" data-st="${i + 1}" data-scan="${j}" aria-pressed="${on}" title="${stationLabel(n, i)} at ${fmtClock((j + 1) * c.idleInterval)}">${on ? '✕' : ''}</button></td>`;
+        }).join('')}<td class="n">${scanTotals[j]}</td></tr>`).join('')}</tbody>
+        <tfoot><tr class="total"><td>Total</td>${idleTotals.map(v => `<td class="c">${v}</td>`).join('')}<td class="n">${idleTotals.reduce((a, b) => a + b, 0)}</td></tr></tfoot>
+      </table></div>
+    </section>
+  </div>`;
+}
+function logText(l) {
+  if (l.type === 'good') return 'Good plane shipped';
+  if (l.type === 'defect') return 'Defect: ' + (CHECKS.find(k => k.key === l.key) || {}).label;
+  if (l.type === 'tagShip') return 'Tagged plane shipped';
+  if (l.type === 'tagStart') return 'Tag start stamped';
+  return l.type;
+}
+
+/* ---------- Balance chart ---------- */
+function niceMax(v) { return Math.max(10, Math.ceil(v / 10) * 10); }
+function balanceChart(d, stacks, { labelFn, interactive = false, compact = false, maxV = null } = {}) {
+  const loads = stacks.map(st => stackLoad(d.map, st));
+  const top = maxV || niceMax(Math.max(d.T, ...loads) * 1.18);
+  const step = top <= 40 ? 5 : 10;
+  const pct = v => (v / top * 100).toFixed(3) + '%';
+  const ticks = []; for (let v = 0; v <= top + 1e-9; v += step) ticks.push(v);
+  const sel = interactive ? ui.selected : null;
+  const cols = stacks.map((st, i) => {
+    const over = loads[i] > d.T + 1e-9;
+    const dropOk = sel && !st.includes(sel);
+    const cards = st.map((id, j) => {
+      const el = d.map[id];
+      return `<div class="bc-card ${sel === id ? 'selected' : ''}" style="height:${pct(+el.time || 0)};background:${colorOf(d, id)}"
+        ${interactive ? `data-card="${id}" data-action="select-card"` : ''} title="${esc(`${id} · ${el.name} · ${fmtNum(+el.time)} s`)}">
+        <div><b>${esc(id)}</b> <span>${fmtNum(+el.time)} s</span></div><div class="n">${esc(el.name)}</div></div>`;
+    }).join('');
+    const wait = loads[i] < d.T - 1e-9 ? `<div class="bc-wait" style="height:${pct(d.T - loads[i])}" title="Waiting ${fmtNum(d.T - loads[i])} s per plane"></div>` : '';
+    return `<div class="bc-col ${over ? 'over' : ''} ${dropOk ? 'drop-ok' : ''}" data-drop-stack="${i}" ${interactive ? 'data-action="drop-stack"' : ''}>
+      <div class="bc-stack">${cards}${wait}</div>
+      <div class="bc-total" style="bottom:${pct(loads[i] < d.T && d.T - loads[i] < top * 0.07 ? d.T : loads[i])}">${fmtNum(loads[i])} s</div>
+    </div>`;
+  }).join('');
+  return `<div class="bc ${compact ? 'compact' : ''} ${interactive ? 'interactive' : ''}">
+    <div class="bc-plot">
+      ${ticks.map(v => `<div class="bc-grid" style="bottom:${pct(v)}"><span>${v}</span></div>`).join('')}
+      <div class="bc-takt" style="bottom:${pct(d.T)}"><span>Takt ${fmtNum(d.T)} s</span></div>
+      <div class="bc-cols">${cols}</div>
+    </div>
+    <div class="bc-labels">${stacks.map((_, i) => `<div>${esc(labelFn(i))}</div>`).join('')}</div>
+  </div>`;
+}
+function statTiles(d, stacks, prefix) {
+  const s = splitStats(d, stacks);
+  return `<div class="tiles">
+    ${tile('Operators', s.n)}
+    ${tile('Bottleneck', `${prefix(s.bottleneck)} · ${fmtNum(s.maxLoad)} s`, s.maxLoad > d.T ? 'bad' : 'ok')}
+    ${tile('Stacks over takt', s.over.length, s.over.length ? 'bad' : 'ok')}
+    ${tile(`Max planes per ${fmtClock(d.c.roundSeconds)}`, `${s.capacity} <span class="muted small">vs ${d.c.demand} needed</span>`, s.capacity < d.c.demand ? 'bad' : 'ok')}
+    ${tile('Balance efficiency', Math.round(s.efficiency * 100) + '%')}
+  </div>`;
+}
+function viewBalance(d) {
+  const mode = state.ui.balanceMode;
+  const reb = getRebalance(d);
+  const legend = `<div class="legend">${d.r1.map((_, i) => `<span><i style="background:${PALETTE[i % PALETTE.length].hex};border:1px solid rgb(0 0 0 / .3)"></i>S${i + 1} cards</span>`).join('')}<span><i style="background:repeating-linear-gradient(45deg,transparent 0 3px,var(--muted) 3px 4px)"></i>Waiting time below takt</span></div>`;
+  const seg = `<div class="seg">${[['r1', 'Round 1 (as-is)'], ['rebalance', 'Rebalance'], ['compare', 'Compare']].map(([k, l]) => `<button data-action="balance-mode" data-mode="${k}" class="${mode === k ? 'active' : ''}">${l}</button>`).join('')}</div>`;
+  let body = '';
+  if (mode === 'r1') {
+    body = `<section class="card">
+      <div class="row"><h2 class="sp">Round 1 operator balance chart</h2>${legend}</div>
+      ${balanceChart(d, d.r1, { labelFn: i => 'S' + (i + 1) })}
+      <div style="margin-top:14px">${statTiles(d, d.r1, i => 'S' + (i + 1))}</div>
+      <div class="say" style="margin-top:12px">"Every stack above this line can't keep up with the customer. Every stack way below it is waiting."</div>
+    </section>`;
+  } else if (mode === 'rebalance') {
+    const s = splitStats(d, reb), freed = d.r1.length - s.n;
+    let msg;
+    if (s.over.length) msg = `<div class="msg bad"><b>${s.over.map(i => 'Stack ' + (i + 1)).join(', ')} ${s.over.length > 1 ? 'are' : 'is'} over the takt line.</b> Move cards to a stack with room.</div>`;
+    else if (s.n > d.N) msg = `<div class="msg warn"><b>Every stack is at or under ${fmtNum(d.T)} s with ${s.n} operators.</b> Can the team do it with ${d.N}?</div>`;
+    else msg = `<div class="msg ok"><b>Balanced: ${s.n} stacks, all at or under ${fmtNum(d.T)} s.</b>${freed > 0 ? ` The freed operator${freed > 1 ? 's are' : ' is'} not cut: ${freed > 1 ? 'they become water spiders' : 'they become the water spider'}, keeping stock full so operators never stop.` : ''}</div>`;
+    const ids = reb.flat(), cuts = cutsFromStacks(reb);
+    const strip = ids.map((id, k) => `${k > 0 ? `<button class="gap ${cuts.includes(k) ? 'cut' : ''}" data-action="toggle-cut" data-k="${k}" title="${cuts.includes(k) ? 'Join' : 'Split'} between ${ids[k - 1]} and ${id}" aria-label="${cuts.includes(k) ? 'Join' : 'Split'} between ${ids[k - 1]} and ${id}"></button>` : ''}<div class="chip" style="background:${colorOf(d, id)}">${esc(id)}<small>${fmtNum(+d.map[id].time)} s</small></div>`).join('');
+    const isSame = JSON.stringify(reb) === JSON.stringify(d.r2);
+    body = `<section class="card">
+      <div class="row"><h2 class="sp">Level the load</h2>${legend}</div>
+      <p class="muted small no-proj" style="margin:4px 0 0">Drag any card onto another station. Cards stay in A–M order, so the cards between it and that station come along (they're outlined while you drag). Or tap a card, then tap a station; with a card selected, ← and → move it one station. A station that loses all its cards disappears.</p>
+      ${balanceChart(d, reb, { labelFn: i => 'Op ' + (i + 1), interactive: true })}
+      <div class="lbl no-proj">Build order: click between two cards to split or join stations</div>
+      <div class="strip no-proj">${strip}</div>
+      <div style="margin-top:14px">${msg}</div>
+      <div style="margin-top:12px">${statTiles(d, reb, i => 'Op ' + (i + 1))}</div>
+      <div class="row no-proj" style="margin-top:12px">
+        ${btn('use-r2', isSame && d.r2Source === 'team' ? '✓ Round 2 uses this split' : 'Use as Round 2 stations', { cls: 'primary', disabled: s.over.length > 0, title: s.over.length ? 'Get every stack under takt first' : '' })}
+        ${btn('reb-reset', 'Reset to Round 1', { confirm: true })}
+        ${btn('reveal-key', state.answerRevealed ? 'Load answer key' : 'Reveal answer key', { confirm: !state.answerRevealed, cls: 'danger' })}
+        <span class="muted small">Round 2 currently uses ${d.r2Source === 'team' ? "the team's split" : 'the answer key'} (${d.r2.length} operators).</span>
+      </div>
+      ${state.answerRevealed ? `<div class="msg" style="margin-top:12px"><b>Answer key:</b> ${(d.key || d.r1).map((s, i) => `Op ${i + 1}: ${s.join('+')} = ${fmtNum(stackLoad(d.map, s))} s`).join(' · ')}. Any split works if the cards stay in A–M order, every stack is at or under takt, and the team uses ${d.N} stacks.</div>` : ''}
+    </section>`;
+  } else {
+    const loads = [...splitStats(d, d.r1).loads, ...splitStats(d, d.r2).loads];
+    const maxV = niceMax(Math.max(d.T, ...loads) * 1.18);
+    body = `<div class="grid">
+      <section class="card"><h2>Round 1 (as-is)</h2>${balanceChart(d, d.r1, { labelFn: i => 'S' + (i + 1), compact: true, maxV })}<div style="margin-top:12px">${statTiles(d, d.r1, i => 'S' + (i + 1))}</div></section>
+      <section class="card"><h2>Round 2 (${d.r2Source === 'team' ? "team's split" : 'answer key'})</h2>${balanceChart(d, d.r2, { labelFn: i => 'Op ' + (i + 1), compact: true, maxV })}<div style="margin-top:12px">${statTiles(d, d.r2, i => 'Op ' + (i + 1))}</div></section>
+      <section class="card span-all">${legend}<p class="muted small" style="margin:6px 0 0">Card colors show each card's Round 1 station, so you can see where work moved.</p></section>
+    </div>`;
+  }
+  return `<div class="row" style="margin-bottom:12px">${seg}<span class="sp"></span>
+    <span class="no-proj">${btn('goto', 'Station sheets →', { cls: 'sm', attrs: 'data-tab="sheets"' })}</span></div>${body}`;
+}
+
+/* ---------- Results ---------- */
+function niceStep(max, ints) {
+  const raw = max / 4; const p = Math.pow(10, Math.floor(Math.log10(raw || 1)));
+  const m = raw / p; let s = (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p;
+  return ints ? Math.max(1, Math.round(s)) : s;
+}
+/* Grouped bar chart. Values are numbers, null, or {v, label, cls}. */
+function groupedBars({ cats, series, h = 230, ints = true, ref = null }) {
+  const W = 560, H = h, m = { l: 40, r: 12, t: 22, b: 30 };
+  const val = x => (x && typeof x === 'object' ? x.v : x);
+  const all = series.flatMap(s => s.vals.map(val)).filter(isNum);
+  let max = Math.max(1, ...all, ref ? ref.v : 0); const step = niceStep(max, ints); max = Math.ceil(max / step) * step;
+  const pw = W - m.l - m.r, ph = H - m.t - m.b, gw = pw / cats.length;
+  const bw = Math.min(46, (gw * 0.72) / series.length);
+  const y = v => m.t + ph - (v / max) * ph;
+  let g = '<g class="grid">';
+  for (let v = 0; v <= max + 1e-9; v += step) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${fmtNum(v)}</text>`;
+  g += '</g>';
+  let bars = '';
+  cats.forEach((cat, ci) => {
+    const x0 = m.l + gw * ci + (gw - bw * series.length) / 2;
+    series.forEach((s, si) => {
+      const raw = s.vals[ci], v = val(raw);
+      if (!isNum(v)) return;
+      const cls = (raw && raw.cls) || s.cls;
+      const x = x0 + si * bw;
+      bars += `<rect class="${cls}" x="${x + 2}" y="${y(v)}" width="${bw - 4}" height="${Math.max(0, m.t + ph - y(v))}" rx="3"><title>${esc(s.name)} · ${esc(cat)}: ${raw && raw.label ? esc(raw.label) : fmtNum(v)}</title></rect>`;
+      bars += `<text class="v" x="${x + bw / 2}" y="${y(v) - 5}" text-anchor="middle">${raw && raw.label ? esc(raw.label) : fmtNum(v)}</text>`;
+    });
+    bars += `<text x="${m.l + gw * ci + gw / 2}" y="${H - 8}" text-anchor="middle">${esc(cat)}</text>`;
+  });
+  const refLine = ref ? `<line class="ref" x1="${m.l}" x2="${W - m.r}" y1="${y(ref.v)}" y2="${y(ref.v)}"/><text x="${W - m.r}" y="${y(ref.v) - 6}" text-anchor="end" style="fill:var(--danger);font-weight:700">${esc(ref.label)}</text>` : '';
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"><defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" style="fill:var(--r1)" opacity=".3"/><rect width="3" height="8" style="fill:var(--r1)"/></pattern></defs>${g}<line class="axis" x1="${m.l}" x2="${W - m.r}" y1="${m.t + ph}" y2="${m.t + ph}"/>${bars}${refLine}</svg>`;
+}
+function lineChart({ xs, series, h = 230 }) {
+  const W = 560, H = h, m = { l: 40, r: 20, t: 22, b: 30 };
+  const all = series.flatMap(s => s.vals).filter(isNum);
+  let max = Math.max(1, ...all); const step = niceStep(max, true); max = Math.ceil(max / step) * step;
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const x = i => m.l + (xs.length === 1 ? pw / 2 : (i / (xs.length - 1)) * pw);
+  const y = v => m.t + ph - (v / max) * ph;
+  let g = '<g class="grid">';
+  for (let v = 0; v <= max + 1e-9; v += step) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  g += '</g>';
+  const lines = series.map((s, si) => {
+    const pts = s.vals.map((v, i) => (isNum(v) ? [x(i), y(v), v] : null)).filter(Boolean);
+    if (!pts.length) return '';
+    return `<polyline fill="none" stroke-width="3" class="${s.cls.replace('f-', 's-')}" points="${pts.map(p => p[0] + ',' + p[1]).join(' ')}"/>` +
+      pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="5" class="${s.cls}"/><text class="v" x="${p[0]}" y="${p[1] - (si ? -18 : 10)}" text-anchor="middle">${p[2]}</text>`).join('');
+  }).join('');
+  const labels = xs.map((l, i) => `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${esc(l)}</text>`).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}<line class="axis" x1="${m.l}" x2="${W - m.r}" y1="${m.t + ph}" y2="${m.t + ph}"/>${lines}${labels}</svg>`;
+}
+function viewResults(d) {
+  ensureRound(1, d); ensureRound(2, d);
+  const c = d.c, rows = metricsRows(state, d), R1 = state.rounds[1], R2 = state.rounds[2];
+  const n1 = d.r1.length, n2 = d.r2.length, scans = scanCount(c);
+  const legend = `<div class="legend"><span><i class="k-r1"></i>Round 1 · batch</span><span><i class="k-r2"></i>Round 2 · flow</span></div>`;
+  const board = `<table class="mb">
+    <thead><tr><th>Metric</th><th class="c">Target</th><th class="c">Round 1</th><th class="c">Round 2</th><th class="c">Change</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><td><b>${esc(r.label)}</b></td><td class="c">${esc(r.target)}</td><td class="c num">${fmtMetric(r.r1, r.unit)}</td><td class="c num">${fmtMetric(r.r2, r.unit)}</td>
+      <td data-action="circle" data-key="${r.key}" style="cursor:pointer" title="Click to circle this change" class="c chg num ${r.change && r.change.good === true ? 'good' : r.change && r.change.good === false && r.change.diff !== 0 ? 'bad' : ''} ${r.biggest ? 'biggest' : ''}"><span>${fmtChange(r.change, r.unit)}</span></td></tr>`).join('')}</tbody>
+  </table>`;
+  const l1 = leadTime(R1, c), l2 = leadTime(R2, c);
+  const ltBar = (l, cls) => (isNum(l.value) ? { v: l.value, cls } : l.dns ? { v: l.floor, label: `> ${l.floor}`, cls: 'f-dns' } : null);
+  const i1 = idleByStation(R1, n1, scans), i2 = idleByStation(R2, n2, scans);
+  const maxSt = Math.max(n1, n2);
+  const charts = `
+    <section class="card"><div class="row"><h3 class="sp">WIP on the line over time</h3>${legend}</div>
+      ${lineChart({ xs: wipTimes(c).map(fmtClock), series: [{ name: 'Round 1', cls: 'f-r1', vals: [0, 1, 2].map(col => wipTotal(R1, n1, col)) }, { name: 'Round 2', cls: 'f-r2', vals: [0, 1, 2].map(col => wipTotal(R2, n2, col)) }] })}</section>
+    <section class="card"><div class="row"><h3 class="sp">Tagged-plane lead time (s)</h3></div>
+      ${groupedBars({ cats: ['Round 1', 'Round 2'], series: [{ name: 'Lead time', cls: 'f-r2', vals: [ltBar(l1, 'f-r1'), ltBar(l2, 'f-r2')] }], ints: true, ref: { v: d.T, label: `Takt ${fmtNum(d.T)} s` } })}</section>
+    <section class="card"><div class="row"><h3 class="sp">Operator waits by station</h3>${legend}</div>
+      ${groupedBars({ cats: Array.from({ length: maxSt }, (_, i) => `${i + 1}`), series: [{ name: 'Round 1', cls: 'f-r1', vals: Array.from({ length: maxSt }, (_, i) => (roundPlayed(R1) && i < n1 ? i1[i] : null)) }, { name: 'Round 2', cls: 'f-r2', vals: Array.from({ length: maxSt }, (_, i) => (roundPlayed(R2) && i < n2 ? i2[i] : null)) }] })}
+      <p class="muted small" style="margin:4px 0 0">Station number: S1–S${n1} in Round 1, Op 1–Op ${n2} in Round 2.</p></section>
+    <section class="card"><div class="row"><h3 class="sp">Defects by check</h3>${legend}</div>
+      ${groupedBars({ cats: CHECKS.map(k => k.label.replace(' number', '').replace('Inspection mark', 'Insp.')), series: [{ name: 'Round 1', cls: 'f-r1', vals: CHECKS.map(k => (roundPlayed(R1) ? R1.defects[k.key] : null)) }, { name: 'Round 2', cls: 'f-r2', vals: CHECKS.map(k => (roundPlayed(R2) ? R2.defects[k.key] : null)) }] })}</section>`;
+  return `<div class="grid">
+    <section class="card span-all">
+      <div class="row"><h2 class="sp">Metrics board</h2><span class="no-proj">${btn('print-results', 'Print results', { cls: 'sm' })} ${btn('export-csv', 'Export CSV', { cls: 'sm' })}</span></div>
+      <div class="tbl-wrap">${board}</div>
+      <p class="muted small" style="margin:8px 0 0">The biggest change is circled. Click a different change to circle it instead. WIP is the WIP observer's total at ${fmtClock(c.roundSeconds)}, including the customer outbox. A tagged plane that didn't ship counts as more than ${c.roundSeconds} s, so its change is shown as a bound.</p>
+    </section>
+    <div class="span-all grid charts">${charts}</div>
+    <section class="card span-all">
+      <h2>Close out</h2>
+      <div class="say">"Where on our real line is there an S4? What would a balance chart of your cell look like?"</div>
+      <p style="margin:6px 0 0">Go around the room: one takeaway each. <span class="muted">If time runs short, take 3 volunteers.</span></p>
+    </section>
+  </div>`;
+}
+
+/* ---------- Print helpers ---------- */
+function sheetsHTML(d, n) {
+  const stacks = n === 1 ? d.r1 : d.r2;
+  const rules = roundRules(n, d);
+  const sheets = stacks.map((st, i) => `<section class="sheet">
+    <h2>${n === 1 ? 'Station' : 'Operator'} ${i + 1} · ${fmtNum(stackLoad(d.map, st))} s per plane</h2>
+    <p><b>Round ${n} · ${n === 1 ? 'Batch and push' : 'One-piece flow'}.</b> Takt ${fmtNum(d.T)} s.</p>
+    <ol>${rules.map(r => `<li>${esc(r)}</li>`).join('')}</ol>
+    ${FOLD.legend}
+    <table><thead><tr><th>Step</th><th>Card</th><th>Diagram</th><th>What to do</th><th>Time</th></tr></thead>
+    <tbody>${st.map((id, j) => `<tr><td style="text-align:center">${j + 1}</td><td style="text-align:center"><b class="card-letter" style="background:${colorOf(d, id)}">${esc(id)}</b></td>
+      <td class="dg">${FOLD.svg(id)}</td><td>${esc(d.map[id].step)}</td><td style="white-space:nowrap">${fmtNum(+d.map[id].time)} s</td></tr>`).join('')}</tbody></table>
+  </section>`);
+  if (n === 2 && d.r1.length > d.r2.length) sheets.push(`<section class="sheet"><h2>Water spider (freed operator)</h2><ul>
+    <li>Keep every station stocked: paper at Op 1, markers at the logo stations, tape at the tape station, pens at the serial number station.</li>
+    <li>Answer raised hands within 10 seconds.</li><li>Never build planes yourself. Your job is to keep operators from ever stopping.</li></ul></section>`);
+  return `<h1 style="font-size:12pt;color:#555">${esc(state.sessionName)}</h1>` + sheets.join('');
+}
+function viewSheets(d) {
+  const n = state.ui.sheetsRound === 2 ? 2 : 1;
+  const stacks = n === 1 ? d.r1 : d.r2;
+  const note = n === 1 ? `${stacks.length} stations, batches of ${d.c.batchSize}`
+    : `${stacks.length} operators from ${d.r2Source === 'team' ? "the team's rebalance" : 'the answer key'}${d.r1.length > stacks.length ? ', plus the water spider' : ''}`;
+  return `<div class="row no-print" style="margin-bottom:14px">
+      <div class="seg">${[1, 2].map(x => `<button data-action="sheets-round" data-round="${x}" class="${n === x ? 'active' : ''}">Round ${x} sheets</button>`).join('')}</div>
+      <span class="muted">${esc(note)}</span><span class="sp"></span>
+      ${btn('print-sheets', 'Print these sheets', { cls: 'primary', attrs: `data-round="${n}"` })}
+    </div>
+    <div class="sheets-preview">${sheetsHTML(d, n)}</div>`;
+}
+function printHTML(html) {
+  const area = document.getElementById('print-area');
+  area.innerHTML = html;
+  document.body.classList.add('printing');
+  const done = () => { document.body.classList.remove('printing'); area.innerHTML = ''; window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  window.print();
+}
+
+/* ============================================================
+   6. Render loop and events
+   ============================================================ */
+const VIEWS = { setup: viewSetup, times: viewTimes, agenda: viewAgenda, run: viewRun, balance: viewBalance, sheets: viewSheets, results: viewResults };
+/* Patch `live` in place so it matches `next` (a detached copy). Nodes that already match are
+   kept, so the input being typed in is never replaced and keeps its caret, selection and focus. */
+function morph(live, next) {
+  const a = [...live.childNodes], b = [...next.childNodes];
+  b.forEach((n, i) => {
+    const o = a[i];
+    if (!o) { live.appendChild(n); return; }
+    const same = o.nodeType === n.nodeType && o.nodeName === n.nodeName &&
+      (o.nodeType !== 1 || (o.getAttribute('data-bind') === n.getAttribute('data-bind') && o.getAttribute('type') === n.getAttribute('type')));
+    if (!same) { live.replaceChild(n, o); return; }
+    if (o.nodeType !== 1) { if (o.data !== n.data) o.data = n.data; return; }
+    const focused = o === document.activeElement;
+    for (const at of [...o.attributes]) {
+      if (!n.hasAttribute(at.name) && !(o.tagName === 'DETAILS' && at.name === 'open')) o.removeAttribute(at.name);
+    }
+    for (const at of [...n.attributes]) {
+      if (focused && at.name === 'value') continue;
+      if (o.getAttribute(at.name) !== at.value) o.setAttribute(at.name, at.value);
+    }
+    if (o.tagName === 'TEXTAREA') { if (!focused && o.value !== n.value) o.value = n.value; return; }
+    if (o.tagName === 'INPUT') {
+      if (o.type === 'checkbox') o.checked = n.hasAttribute('checked');
+      else if (!focused) { const v = n.getAttribute('value') ?? ''; if (o.value !== v) o.value = v; }
+      return;
+    }
+    morph(o, n);
+  });
+  for (let i = a.length - 1; i >= b.length; i--) live.removeChild(a[i]);
+}
+/* Removing a focused field during morph fires blur/change, whose handler calls render() again.
+   A render requested while one is running is queued and runs right after, never nested. */
+let rendering = false;
+function render() {
+  if (ui.dragging || rendering) { ui.pendingRender = true; return; }
+  rendering = true;
+  try {
+    ui.pendingRender = false;
+    const a = document.activeElement, key = a && a.dataset ? a.dataset.bind : null;
+    const sy = window.scrollY;
+    const d = derive(state);
+    renderChrome();
+    const app = document.getElementById('app');
+    const next = document.createElement('div');
+    next.innerHTML = (storageOk ? '' : '<div class="msg warn" style="margin-bottom:12px"><b>Browser storage is unavailable.</b> Use "Save session" to keep your data.</div>') + (VIEWS[state.ui.tab] || viewSetup)(d);
+    morph(app, next);
+    /* Fallback: if a layout change still replaced the focused field, refocus its replacement with the caret at the end. */
+    if (key && document.activeElement !== a) {
+      const el = app.querySelector(`[data-bind="${CSS.escape(key)}"]`);
+      if (el) { el.focus({ preventScroll: true }); try { el.setSelectionRange(el.value.length, el.value.length); } catch (e) { /* checkbox */ } }
+    }
+    window.scrollTo(0, sy);
+    updateClocks();
+  } finally {
+    rendering = false;
+  }
+  if (ui.pendingRender && !ui.dragging) render();
+}
+function commit() { save(); render(); }
+function toast(text, kind = '') {
+  const t = document.getElementById('toast');
+  t.textContent = text; t.className = 'show ' + kind;
+  clearTimeout(ui.toastTimer); ui.toastTimer = setTimeout(() => { t.className = kind; }, kind === 'cue' ? 6000 : 3000);
+}
+let actx = null;
+function beep(kind) {
+  if (!state.ui.sound) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const count = kind === 'end' ? 3 : 1;
+    for (let i = 0; i < count; i++) {
+      const o = actx.createOscillator(), g = actx.createGain(), t0 = actx.currentTime + i * 0.28;
+      o.frequency.value = kind === 'end' ? 520 : kind === 'wip' ? 880 : 660;
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+      o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0 + 0.25);
+    }
+  } catch (e) { /* no audio */ }
+}
+function getPath(o, path) { return path.split('.').reduce((x, k) => (x == null ? x : x[k]), o); }
+function setPath(o, path, v) { const ks = path.split('.'); const last = ks.pop(); const tgt = ks.reduce((x, k) => x[k], o); tgt[last] = v; }
+
+function updateClocks() {
+  const c = state.config, R = c.roundSeconds;
+  for (const n of [1, 2]) {
+    const r = state.rounds[n], e = Math.min(R, clockElapsed(r.clock));
+    document.querySelectorAll(`[data-clock="round-${n}"]`).forEach(el => { el.textContent = fmtClock(Math.ceil(R - e - 1e-6)); });
+    document.querySelectorAll(`[data-clock="round-${n}-elapsed"]`).forEach(el => { el.textContent = fmtClock(e); });
+    document.querySelectorAll(`[data-progress="round-${n}"]`).forEach(el => { el.style.width = (e / R * 100) + '%'; });
+  }
+  const t = clockElapsed(state.session.clock);
+  document.querySelectorAll('[data-clock="session"]').forEach(el => { el.textContent = fmtClock(t); });
+  const nxt = AGENDA.find(b => b.start > t);
+  document.querySelectorAll('[data-clock="session-next"]').forEach(el => { el.textContent = nxt ? fmtClock(nxt.start - t) : ''; });
+  document.querySelectorAll('[data-progress="session-marker"]').forEach(el => { el.style.left = Math.min(100, t / SESSION_SECONDS * 100) + '%'; });
+  const pl = state.config.pilot && state.config.pilot.live;
+  if (pl) {
+    const step = Math.max(0, (Date.now() - pl.stepStart) / 1000);
+    document.querySelectorAll('[data-clock="pilot-step"]').forEach(el => { el.textContent = step.toFixed(1); });
+    document.querySelectorAll('[data-clock="pilot-total"]').forEach(el => { el.textContent = (sumOf(pl.laps) + step).toFixed(1); });
+  }
+  const mini = document.getElementById('mini');
+  const live = [1, 2].find(n => state.rounds[n].clock.startedAt);
+  if (live) { mini.textContent = `Round ${live} · ${fmtClock(Math.ceil(R - Math.min(R, clockElapsed(state.rounds[live].clock)) - 1e-6))}`; mini.className = 'mini on'; mini.style.background = ''; mini.style.color = ''; }
+  else if (state.session.clock.startedAt) { mini.textContent = `Session ${fmtClock(t)}`; mini.className = 'mini on'; mini.style.background = 'var(--accent)'; mini.style.color = 'var(--accent-ink)'; }
+  else mini.className = 'mini';
+}
+
+function tick() {
+  const c = state.config, R = c.roundSeconds;
+  let changed = false;
+  for (const n of [1, 2]) {
+    const r = state.rounds[n];
+    if (!r.clock.startedAt) continue;
+    const e = clockElapsed(r.clock);
+    const fired = roundCues(c).filter(q => !r.fired.includes(q.id) && e >= q.t - 1e-6);
+    if (e >= R) {
+      clockPause(r.clock); r.clock.accum = R * 1000; r.ended = true;
+      if (!isNum(r.taggedShip)) r.didNotShip = true;
+    }
+    if (fired.length) {
+      fired.forEach(q => r.fired.push(q.id));
+      ui.cue[n] = cueMessage(fired, c); ui.cueFlash = true;
+      setTimeout(() => { ui.cueFlash = false; }, 3200);
+      beep(fired.some(q => q.kind === 'end') ? 'end' : fired.some(q => q.kind === 'wip') ? 'wip' : 'idle');
+      if (state.ui.tab !== 'run' || state.ui.runRound !== n) toast(`Round ${n} · ${ui.cue[n]}`, 'cue');
+      changed = true;
+    }
+    if (r.ended) changed = true;
+  }
+  const s = state.session;
+  if (s.clock.startedAt) {
+    const t = clockElapsed(s.clock);
+    for (const b of AGENDA) {
+      const id = 'b-' + b.id;
+      if (b.start > 0 && t >= b.start && !s.fired.includes(id)) { s.fired.push(id); toast(`${fmtClock(b.start)} · Next block: ${b.title}`, 'cue'); beep('idle'); changed = true; }
+    }
+    if (t >= STALL_AT && !s.fired.includes('stall')) { s.fired.push('stall'); toast('18:30 · If the team is stalled, start the prompts (Script tab).', 'cue'); changed = true; }
+    if (t >= SESSION_SECONDS && !s.fired.includes('end')) { s.fired.push('end'); toast('30:00 · Time is up.', 'cue'); beep('end'); changed = true; }
+  }
+  if (changed) commit(); else updateClocks();
+}
+
+function startRound(n) {
+  const other = state.rounds[3 - n];
+  clockPause(other.clock);
+  const r = state.rounds[n];
+  if (r.ended) return;
+  if (clockElapsed(r.clock) <= 0 && !isNum(r.taggedStart)) r.taggedStart = 0;
+  clockStart(r.clock);
+  tick();
+}
+function logPush(r, entry) { r.log.push({ t: Math.round(Math.min(state.config.roundSeconds, clockElapsed(r.clock)) * 10) / 10, ...entry }); if (r.log.length > 500) r.log.shift(); }
+
+const ACTIONS = {
+  tab: el => { state.ui.tab = el.dataset.tab; ui.selected = null; window.scrollTo(0, 0); },
+  goto: el => {
+    state.ui.tab = el.dataset.tab;
+    if (el.dataset.round) state.ui.runRound = +el.dataset.round;
+    if (el.dataset.mode) state.ui.balanceMode = el.dataset.mode;
+    window.scrollTo(0, 0);
+  },
+  'toggle-sound': () => { state.ui.sound = !state.ui.sound; if (state.ui.sound) beep('idle'); },
+  'cycle-theme': () => { const o = ['auto', 'light', 'dark']; state.ui.theme = o[(o.indexOf(state.ui.theme) + 1) % 3]; },
+  'toggle-projector': () => { state.ui.projector = !state.ui.projector; },
+  'export-json': () => { exportJSON(); toast('Session saved to your downloads.'); return false; },
+  'import-json': () => { document.getElementById('import-file').click(); return false; },
+  'export-csv': () => { download(fileStem() + '.csv', buildCSV(state), 'text/csv'); toast('CSV saved to your downloads.'); return false; },
+  'new-session': () => {
+    if (roundPlayed(state.rounds[1]) || roundPlayed(state.rounds[2])) exportJSON();
+    state = freshState(state); toast('New session started. The old one was saved to your downloads. Setup was kept.');
+  },
+  'reset-config': () => { const pilot = state.config.pilot; state.config = freshState().config; state.config.pilot = pilot; state.rebalance = null; state.r2Stations = null; ui.proposal = null; toast('Setup reset to the doc values. Pilot timings were kept.'); },
+  'pilot-start': () => { const p = state.config.pilot; p.live = { who: p.who || '', stepStart: Date.now(), laps: [] }; },
+  'pilot-step': () => pilotStep(),
+  'pilot-undo': () => { const p = state.config.pilot; if (p.live) p.live = pilotUndo(p.live, Date.now()); },
+  'pilot-discard': () => { state.config.pilot.live = null; toast('Plane discarded.'); },
+  'pilot-delete': el => { state.config.pilot.runs.splice(+el.dataset.run, 1); ui.proposal = null; },
+  'fit-suggest': () => { const fb = fitBase(derive(state)); ui.proposal = { ...fitCardTimes(fb.base, state.config), base: fb.base }; },
+  'fit-apply': () => { if (ui.proposal) applyTimes(ui.proposal.times, 'Card times updated'); },
+  'fit-measured': () => { const fb = fitBase(derive(state)); applyTimes(fb.base.map(x => Math.max(1, Math.round(x))), 'Card times set to the measured times'); },
+  'fit-undo': () => {
+    const prev = state.config.prevTimes; if (!prev) return;
+    state.config.elements.forEach((e, i) => { if (isNum(prev[i])) e.time = prev[i]; });
+    state.config.prevTimes = null; ui.proposal = null; toast('Card times restored.');
+  },
+  'fit-dismiss': () => { ui.proposal = null; },
+  'print-sheets': el => { printHTML(sheetsHTML(derive(state), +el.dataset.round)); return false; },
+  'print-results': () => { printHTML(`<h1>${esc(state.sessionName)}: results</h1>` + document.getElementById('app').innerHTML); return false; },
+
+  'session-toggle': () => { const cl = state.session.clock; if (cl.startedAt) clockPause(cl); else clockStart(cl); },
+  'session-reset': () => { state.session = { clock: newClock(), fired: [] }; },
+  'session-jump': el => {
+    const t = +el.dataset.t; clockSet(state.session.clock, t);
+    state.session.fired = AGENDA.filter(b => b.start <= t).map(b => 'b-' + b.id).concat(t >= STALL_AT ? ['stall'] : []);
+  },
+
+  'run-round': el => { state.ui.runRound = +el.dataset.round; },
+  'sheets-round': el => { state.ui.sheetsRound = +el.dataset.round; },
+  'round-toggle': () => { const n = state.ui.runRound, r = state.rounds[n]; if (r.clock.startedAt) clockPause(r.clock); else startRound(n); },
+  'round-reset': () => { const r = state.rounds[state.ui.runRound]; r.clock = newClock(); r.ended = false; r.fired = []; r.didNotShip = false; ui.cue[state.ui.runRound] = null; },
+  good: () => { const r = state.rounds[state.ui.runRound]; r.good++; logPush(r, { type: 'good' }); },
+  'good-sub': () => { const r = state.rounds[state.ui.runRound]; r.good = Math.max(0, r.good - 1); },
+  defect: el => { const r = state.rounds[state.ui.runRound]; r.defects[el.dataset.key] = (r.defects[el.dataset.key] || 0) + 1; logPush(r, { type: 'defect', key: el.dataset.key }); },
+  'defect-sub': el => { const r = state.rounds[state.ui.runRound]; r.defects[el.dataset.key] = Math.max(0, (r.defects[el.dataset.key] || 0) - 1); },
+  undo: () => {
+    const r = state.rounds[state.ui.runRound], l = r.log.pop(); if (!l) return;
+    if (l.type === 'good') r.good = Math.max(0, r.good - 1);
+    else if (l.type === 'defect') r.defects[l.key] = Math.max(0, (r.defects[l.key] || 0) - 1);
+    else if (l.type === 'tagShip') { r.taggedShip = l.prev ?? null; r.didNotShip = !!l.prevDns; }
+    else if (l.type === 'tagStart') r.taggedStart = l.prev ?? null;
+    toast('Undid: ' + logText(l));
+  },
+  'tag-ship': () => {
+    const r = state.rounds[state.ui.runRound];
+    logPush(r, { type: 'tagShip', prev: r.taggedShip, prevDns: r.didNotShip });
+    r.taggedShip = Math.round(Math.min(state.config.roundSeconds, clockElapsed(r.clock))); r.didNotShip = false;
+  },
+  'tag-start': () => {
+    const r = state.rounds[state.ui.runRound];
+    logPush(r, { type: 'tagStart', prev: r.taggedStart });
+    r.taggedStart = Math.round(Math.min(state.config.roundSeconds, clockElapsed(r.clock)));
+  },
+  idle: el => { const r = state.rounds[state.ui.runRound]; const a = r.idle[el.dataset.st]; a[+el.dataset.scan] = !a[+el.dataset.scan]; },
+
+  'balance-mode': el => { state.ui.balanceMode = el.dataset.mode; ui.selected = null; },
+  'select-card': (el, ev) => { ev.stopPropagation(); const id = el.dataset.card; ui.selected = ui.selected === id ? null : id; },
+  'drop-stack': el => { if (!ui.selected) return false; tryMove(ui.selected, +el.dataset.dropStack); ui.selected = null; },
+  'toggle-cut': el => { const d = derive(state); state.rebalance = toggleCut(getRebalance(d), +el.dataset.k); ui.selected = null; },
+  'use-r2': () => { const d = derive(state); state.r2Stations = clone(getRebalance(d)); toast(`Round 2 will use ${state.r2Stations.length} operators from this split.`); },
+  'reb-reset': () => { state.rebalance = null; ui.selected = null; },
+  circle: el => { state.biggestOverride = state.biggestOverride === el.dataset.key ? null : el.dataset.key; },
+  'reveal-key': () => { const d = derive(state); state.answerRevealed = true; state.rebalance = clone(d.key || d.r1); ui.selected = null; },
+};
+function tryMove(id, j) {
+  const d = derive(state), res = moveTo(getRebalance(d), id, j);
+  if (!res) return false;
+  state.rebalance = res.stacks;
+  const extra = res.moved.filter(x => x !== id);
+  toast(extra.length ? `Moved ${id} to Op ${Math.min(j + 1, res.stacks.length)}; ${extra.join(', ')} came along to keep A–M order.` : `Moved ${id} to Op ${Math.min(j + 1, res.stacks.length)}.`);
+  return true;
+}
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-action]');
+  if (!el || el.disabled) return;
+  const action = el.dataset.action;
+  if (el.dataset.confirm) {
+    if (ui.confirm !== el.dataset.confirm) {
+      ui.confirm = el.dataset.confirm; clearTimeout(ui.confirmTimer);
+      ui.confirmTimer = setTimeout(() => { ui.confirm = null; render(); }, 4000);
+      render(); return;
+    }
+    ui.confirm = null;
+  }
+  const fn = ACTIONS[action]; if (!fn) return;
+  const res = fn(el, ev);
+  if (res !== false) commit();
+});
+function bindValue(el) {
+  const path = el.dataset.bind;
+  if (el.type === 'checkbox') return { path, v: el.checked };
+  if (el.dataset.type === 'num') {
+    if (el.value.trim() === '') return path.startsWith('config.') ? null : { path, v: null };
+    const v = Number(el.value), min = Number(el.dataset.min || 0);
+    if (!isFinite(v) || v < min) return null;
+    return { path, v };
+  }
+  return { path, v: el.value };
+}
+document.addEventListener('input', ev => {
+  const el = ev.target.closest('[data-bind]'); if (!el || el.type === 'checkbox') return;
+  const b = bindValue(el); if (!b) return;
+  setPath(state, b.path, b.v);
+  if (/^rounds\.\d\.taggedShip$/.test(b.path) && isNum(b.v)) state.rounds[b.path[7]].didNotShip = false;
+  if (/^config\.(elements|pilot\.runs|design|roundSeconds|demand)/.test(b.path)) ui.proposal = null;
+  save();
+  render();
+});
+document.addEventListener('change', ev => {
+  const el = ev.target;
+  if (el.id === 'import-file') {
+    const f = el.files && el.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try { state = normalize(JSON.parse(rd.result)); commit(); toast('Session loaded: ' + state.sessionName); }
+      catch (e) { toast('That file is not a saved flow-game session.'); }
+      el.value = '';
+    };
+    rd.readAsText(f); return;
+  }
+  if (el.matches('[data-bind]') && el.type === 'checkbox') { setPath(state, el.dataset.bind, el.checked); if (el.dataset.bind.startsWith('config.pilot.runs')) ui.proposal = null; commit(); }
+  else if (el.matches('[data-bind]')) render();
+});
+document.addEventListener('keydown', ev => {
+  if (ev.target.closest('input, textarea, select') || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (state.ui.tab === 'times' && state.config.pilot.live && (ev.key === ' ' || ev.key === 'Backspace')) {
+    ev.preventDefault(); if (ev.repeat) return;
+    ui.pilotSpace = ev.key === ' ';
+    if (ev.key === ' ') pilotStep(); else ACTIONS['pilot-undo']();
+    commit(); return;
+  }
+  if (ev.key === 'p' || ev.key === 'P') { state.ui.projector = !state.ui.projector; commit(); }
+  else if (state.ui.tab === 'run' && ev.key === ' ' && !ev.target.closest('button')) { ev.preventDefault(); ACTIONS['round-toggle'](); commit(); }
+  else if (state.ui.tab === 'run' && (ev.key === 'g' || ev.key === 'G')) { ACTIONS.good(); commit(); }
+  else if (ev.key === 'Escape' && drag) endDrag(false);
+  else if (ev.key === 'Escape' && ui.selected) { ui.selected = null; render(); }
+  else if (state.ui.tab === 'balance' && ui.selected && (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight')) {
+    ev.preventDefault();
+    const reb = getRebalance(derive(state)), i = reb.findIndex(st => st.includes(ui.selected));
+    if (tryMove(ui.selected, i + (ev.key === 'ArrowRight' ? 1 : -1))) commit();
+  }
+});
+/* The Space that finished a step must not also "click" whatever button has focus now. */
+document.addEventListener('keyup', ev => { if (ev.key === ' ' && ui.pilotSpace) { ui.pilotSpace = false; ev.preventDefault(); } });
+/* Drag for the rebalance board: pointer events (mouse, touch, pen). While a drag is live,
+   render() is held so timer cues can't replace the DOM under the pointer. */
+let drag = null;
+function dragTargetAt(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const col = el && el.closest('.bc.interactive [data-drop-stack]');
+  return col ? +col.dataset.dropStack : null;
+}
+function clearDragMarks() { document.querySelectorAll('.bc .drop-ok, .bc .carry').forEach(n => n.classList.remove('drop-ok', 'carry')); }
+function beginDrag(ev) {
+  const r = drag.el.getBoundingClientRect();
+  const g = drag.el.cloneNode(true);
+  g.classList.add('bc-ghost'); g.classList.remove('selected');
+  g.removeAttribute('data-action'); g.removeAttribute('data-card');
+  Object.assign(g.style, { width: r.width + 'px', height: r.height + 'px', left: r.left + 'px', top: r.top + 'px' });
+  const tip = document.createElement('div'); tip.className = 'ghost-tip'; g.appendChild(tip);
+  document.body.appendChild(g);
+  drag.ghost = g; drag.tip = tip; drag.dx = ev.clientX - r.left; drag.dy = ev.clientY - r.top;
+  drag.active = true; ui.dragging = true; ui.selected = null;
+  drag.el.classList.add('drag-src'); document.body.classList.add('bc-dragging');
+}
+function updateDrag(ev) {
+  drag.ghost.style.left = ev.clientX - drag.dx + 'px';
+  drag.ghost.style.top = ev.clientY - drag.dy + 'px';
+  const j = dragTargetAt(ev.clientX, ev.clientY);
+  if (j === drag.target) return;
+  drag.target = j; clearDragMarks();
+  const res = j == null ? null : moveTo(getRebalance(derive(state)), drag.id, j);
+  if (!res) { drag.tip.textContent = j == null ? 'Drop on a station' : 'Already here'; return; }
+  document.querySelector(`.bc.interactive [data-drop-stack="${j}"]`)?.classList.add('drop-ok');
+  res.moved.forEach(id => document.querySelector(`.bc.interactive [data-card="${id}"]`)?.classList.add('carry'));
+  const extra = res.moved.length - 1;
+  drag.tip.textContent = `→ Op ${j + 1}` + (extra ? ` (+${extra} card${extra > 1 ? 's' : ''})` : '');
+}
+function endDrag(drop) {
+  const d0 = drag; drag = null;
+  if (!d0 || !d0.active) return;
+  d0.ghost.remove(); d0.el.classList.remove('drag-src'); document.body.classList.remove('bc-dragging'); clearDragMarks();
+  ui.dragging = false; ui.suppressClick = true; setTimeout(() => { ui.suppressClick = false; }, 0);
+  if (drop && d0.target != null && tryMove(d0.id, d0.target)) commit();
+  else if (ui.pendingRender) render();
+}
+document.addEventListener('pointerdown', ev => {
+  if (ev.button !== 0 || drag) return;
+  const card = ev.target.closest('.bc.interactive .bc-card[data-card]');
+  if (!card) return;
+  drag = { id: card.dataset.card, el: card, pointerId: ev.pointerId, x0: ev.clientX, y0: ev.clientY, active: false, target: undefined };
+});
+window.addEventListener('pointermove', ev => {
+  if (!drag || ev.pointerId !== drag.pointerId) return;
+  if (!drag.active) {
+    if (Math.hypot(ev.clientX - drag.x0, ev.clientY - drag.y0) < 5) return;
+    beginDrag(ev);
+  }
+  ev.preventDefault();
+  updateDrag(ev);
+}, { passive: false });
+window.addEventListener('pointerup', ev => { if (drag && ev.pointerId === drag.pointerId) endDrag(true); });
+window.addEventListener('pointercancel', ev => { if (drag && ev.pointerId === drag.pointerId) endDrag(false); });
+window.addEventListener('blur', () => endDrag(false));
+/* A finished drag must not also count as a tap-select. */
+window.addEventListener('click', ev => { if (ui.suppressClick) { ui.suppressClick = false; ev.stopPropagation(); ev.preventDefault(); } }, true);
+window.addEventListener('storage', ev => { if (ev.key === STORE_KEY) { state = load(); render(); } });
+
+/* ============================================================
+   7. Self-tests (open with ?test)
+   ============================================================ */
+function runTests() {
+  const out = [];
+  const eq = (name, got, want) => out.push({ name, ok: JSON.stringify(got) === JSON.stringify(want), got, want });
+  const s = freshState(), d = derive(s);
+  eq('takt = 300 ÷ 10 = 30 s', d.T, 30);
+  eq('work content = 122 s', d.W, 122);
+  eq('operators needed = ceil(122 ÷ 30) = 5', d.N, 5);
+  eq('Round 1 has 6 stations', d.r1.length, 6);
+  eq('Round 1 station loads', splitStats(d, d.r1).loads, [20, 14, 28, 42, 8, 10]);
+  eq('Round 1 bottleneck is S4', splitStats(d, d.r1).bottleneck, 3);
+  eq('Round 1 over takt: only S4', splitStats(d, d.r1).over, [3]);
+  eq('answer key is a valid A–M split', validSplit(s.config.elements, ANSWER_KEY), true);
+  eq('answer key loads', splitStats(d, ANSWER_KEY).loads, [27, 23, 27, 27, 18]);
+  eq('answer key all at or under takt', splitStats(d, ANSWER_KEY).over.length, 0);
+  eq('Round 2 defaults to the answer key', [d.r2Source, d.r2.length], ['key', 5]);
+  eq('move K (top of S4) right', moveTo(d.r1, 'K', 4).stacks, [['A', 'B', 'C'], ['D', 'E'], ['F', 'G', 'H'], ['I', 'J'], ['K', 'L'], ['M']]);
+  eq('move M (only card of S6) left removes the station', moveTo(d.r1, 'M', 4).stacks.length, 5);
+  eq('move middle J right carries K', moveTo(d.r1, 'J', 4), { stacks: [['A', 'B', 'C'], ['D', 'E'], ['F', 'G', 'H'], ['I'], ['J', 'K', 'L'], ['M']], moved: ['J', 'K'] });
+  eq('move middle G left carries F', moveTo(d.r1, 'G', 1), { stacks: [['A', 'B', 'C'], ['D', 'E', 'F', 'G'], ['H'], ['I', 'J', 'K'], ['L'], ['M']], moved: ['F', 'G'] });
+  eq('move top card K left onto S3 carries I, J', moveTo(d.r1, 'K', 2).moved, ['I', 'J', 'K']);
+  eq('jump K two stations right: L comes too, S5 disappears', moveTo(d.r1, 'K', 5).stacks, [['A', 'B', 'C'], ['D', 'E'], ['F', 'G', 'H'], ['I', 'J'], ['K', 'L', 'M']]);
+  eq('jump C two stations right: whole S2 merges', moveTo(d.r1, 'C', 2).stacks, [['A', 'B'], ['C', 'D', 'E', 'F', 'G', 'H'], ['I', 'J', 'K'], ['L'], ['M']]);
+  eq('drop on own station is a no-op', moveTo(d.r1, 'J', 3), null);
+  eq('bottom card D right takes whole S2', moveTo(d.r1, 'D', 2).stacks, [['A', 'B', 'C'], ['D', 'E', 'F', 'G', 'H'], ['I', 'J', 'K'], ['L'], ['M']]);
+  let walk = clone(d.r1);
+  for (const [c, j] of [['K', 4], ['M', 4], ['D', 0], ['G', 1], ['I', 2]]) walk = moveTo(walk, c, j).stacks;
+  walk = moveTo(walk, 'K', 3).stacks;
+  eq('a sequence of drags reaches the answer key', walk, ANSWER_KEY);
+  const every = d.r1.flatMap((_, j) => d.c.elements.map(e => moveTo(d.r1, e.id, j)).filter(Boolean));
+  eq('every possible move keeps A–M order', every.every(r => validSplit(d.c.elements, r.stacks)), true);
+  eq('toggle cut joins S5 and S6', toggleCut(d.r1, 12), [['A', 'B', 'C'], ['D', 'E'], ['F', 'G', 'H'], ['I', 'J', 'K'], ['L', 'M']]);
+  eq('toggle cut splits again', toggleCut(toggleCut(d.r1, 12), 12), d.r1);
+  eq('cuts round-trip', stacksFromCuts(ANSWER_KEY.flat(), cutsFromStacks(ANSWER_KEY)), ANSWER_KEY);
+  eq('round 1 capacity at 42 s bottleneck = 7 planes', splitStats(d, d.r1).capacity, 7);
+  eq('answer key capacity at 27 s = 11 planes', splitStats(d, ANSWER_KEY).capacity, 11);
+  eq('lead time 0 → 95 s', leadTime({ taggedStart: 0, taggedShip: 95, didNotShip: false }, s.config).value, 95);
+  eq('did not ship counts as > 300 s', leadTime({ taggedStart: 0, taggedShip: null, didNotShip: true }, s.config), { value: null, dns: true, floor: 300 });
+  eq('10 idle scans per round', scanCount(s.config), 10);
+  eq('WIP checks at 0:00, 2:30, 5:00', wipTimes(s.config).map(fmtClock), ['0:00', '2:30', '5:00']);
+  eq('cue list: 3 WIP + 10 idle', roundCues(s.config).length, 13);
+  const r = newRound(); s.rounds[1] = r; ensureRoundFor(s, 1);
+  eq('Round 1 WIP preload = 25 (5 × S2–S6)', wipTotal(r, 6, 0), 25);
+  const r2 = newRound(); s.rounds[2] = r2; ensureRoundFor(s, 2);
+  eq('Round 2 WIP preload = 4', wipTotal(r2, 5, 0), 4);
+  eq('higher-is-better change', compare(6, 10, 'higher'), { diff: 4, pct: 4 / 6, score: 0.4, good: true, bound: false });
+  eq('small counts are damped (1 → 0 scores 0.2)', compare(1, 0, 'lower').score, 0.2);
+  eq('lower-is-better change', compare(25, 4, 'lower').good, true);
+  eq('lead-time change vs did-not-ship is a bound', compare({ value: null, dns: true, floor: 300 }, { value: 90, dns: false }, 'lower').bound, true);
+  eq('change text', fmtChange(compare(25, 4, 'lower')), '−21 (−84%)');
+  s.rounds[1].good = 6; s.rounds[1].log.push({ t: 1, type: 'good' }); s.rounds[2].good = 10; s.rounds[2].log.push({ t: 1, type: 'good' });
+  s.rounds[1].wip.out[2] = 0; ['in2', 'in3', 'in4', 'in5', 'in6'].forEach(k => { s.rounds[1].wip[k][2] = k === 'in4' ? 15 : 2; });
+  ['in2', 'in3', 'in4', 'in5', 'out'].forEach(k => { s.rounds[2].wip[k][2] = 1; });
+  const rows = metricsRows(s, derive(s));
+  eq('biggest change is WIP (23 → 5)', rows.find(x => x.biggest).key, 'wip');
+  eq('operators row 6 → 5', [rows[5].r1, rows[5].r2], [6, 5]);
+  s.biggestOverride = 'good';
+  eq('facilitator can circle a different change', metricsRows(s, derive(s)).find(x => x.biggest).key, 'good');
+  eq('deepMerge keeps new defaults', normalize({ config: { demand: 12 } }).config.roundSeconds, 300);
+  eq('deepMerge keeps loaded values', normalize({ config: { demand: 12 } }).config.demand, 12);
+  eq('fmtClock', [fmtClock(0), fmtClock(150), fmtClock(299.4), fmtClock(300)], ['0:00', '2:30', '4:59', '5:00']);
+  eq('CSV builds', buildCSV(s).split('\n')[0], 'Session,' + s.sessionName);
+  const dcfg = freshState().config, docT = dcfg.elements.map(e => e.time);
+  eq('bestSplit on the doc times: largest stack 27 s', bestSplit(docT, 5).max, 27);
+  eq('design checks all pass for the doc times', designChecks(dcfg).ok, true);
+  const k32 = clone(dcfg); k32.elements[10].time = 32;
+  eq('a 32 s card fails the longest-card check', designChecks(k32).checks.find(k => k.key === 'longest').ok, false);
+  const big = clone(dcfg); big.elements.forEach(e => { e.time = e.time * 158 / 122; });
+  eq('a 158 s total fails the 5-operator window', designChecks(big).checks.find(k => k.key === 'window').ok, false);
+  eq('auto-fit leaves the doc times alone', fitCardTimes(docT, dcfg).times, docT);
+  const f13 = fitCardTimes(docT.map(t => t * 1.3), dcfg);
+  eq('auto-fit doc ×1.3 passes every check', [f13.ok, sumOf(f13.times) > 120 && sumOf(f13.times) <= 150], [true, true]);
+  const flat = fitCardTimes([8, 6, 6, 7, 7, 6, 10, 12, 10, 10, 11, 14, 15], dcfg);
+  eq('auto-fit creates a clear bottleneck (S4 ≥ 38 s)', [flat.ok, flat.times[8] + flat.times[9] + flat.times[10] >= 38], [true, true]);
+  let fz = 4242; const rnd = () => (fz = (fz * 1103515245 + 12345) % 2147483648) / 2147483648;
+  let fuzzOk = 0, det = true;
+  for (let r = 0; r < 60; r++) {
+    const total = 90 + rnd() * 110, raw = docT.map(t => t * (0.5 + rnd())), sc = total / sumOf(raw), m = raw.map(v => v * sc);
+    const a = fitCardTimes(m, dcfg); if (a.ok) fuzzOk++;
+    if (r % 15 === 0 && JSON.stringify(fitCardTimes(m, dcfg).times) !== JSON.stringify(a.times)) det = false;
+  }
+  eq('auto-fit fuzz: 60 random pilots all fit', fuzzOk, 60);
+  eq('auto-fit is deterministic', det, true);
+  const ps = pilotSummary([{ times: docT.map(t => t + 1) }, { times: docT }, { times: docT.map((t, i) => (i === 8 ? t + 9 : t)) }], 13);
+  eq('pilot: median of 3, spread flag', [ps.useMedian, ps.center[0], ps.center[8], ps.flag[8], ps.flag[0]], [true, 8, 16, true, false]);
+  eq('pilot: average of 2', pilotSummary([{ times: docT.map(() => 6) }, { times: docT.map(() => 9) }], 13).center[0], 7.5);
+  eq('pilot: lap and undo', (() => { let l = { stepStart: 1000, laps: [] }; l = pilotLap(l, 9240); l = pilotLap(l, 15300); return [l.laps, pilotUndo(l).laps, pilotUndo(l).stepStart]; })(), [[8.2, 6.1], [8.2], 9200]);
+  eq('answer key stays the doc key for the doc times', answerKeyFor(dcfg, 5), ANSWER_KEY);
+  const ae = clone(dcfg); ae.elements[0].time += 3; ae.elements[4].time -= 3;  /* doc key's A+B+C+D becomes 30 s */
+  eq('answer key re-solves when the doc key no longer fits', (() => { const k = answerKeyFor(ae, 5), m = elementMap(ae); return [k === ANSWER_KEY, k.length, Math.max(...k.map(st => stackLoad(m, st)))]; })(), [false, 5, 27]);
+  eq('stall prompt numbers follow the cards', stallPrompts(derive(s))[1], '"Can S5 and S6 be one person?" (L + M = 18 s)');
+  const g = FOLD.geom, near = (a, b) => Math.abs(a - b) < 1e-6;
+  eq('every element A–M has a fold diagram', DEFAULT_ELEMENTS.every(e => FOLD.has(e.id) && FOLD.svg(e.id).startsWith('<svg')), true);
+  eq('D fold meets the side edge at 10.26 in', Math.round(g.yD * 100) / 100, 10.26);
+  eq('D fold puts the slanted edge on the crease', near(g.reflect([0, g.C], [g.C, 0], [0, g.yD])[0], g.C), true);
+  eq('G fold puts the top edge on the keel', near(g.reflect(g.T1, g.N, g.Wf)[1], g.C), true);
+  eq('wingspan per side is about 2.2 in', Math.round(g.span * 10) / 10, 2.2);
+  eq('sheet SVG arrow markers are unique', (() => { const a = FOLD.svg('A'), b = FOLD.svg('A'); return a.match(/id="([^"]+)"/)[1] !== b.match(/id="([^"]+)"/)[1]; })(), true);
+  return out;
+}
+function ensureRoundFor(st, n) { const keep = state; state = st; try { ensureRound(n, derive(st)); } finally { state = keep; } }
+function renderTests() {
+  const res = runTests(), fails = res.filter(r => !r.ok);
+  document.getElementById('tabs').innerHTML = '';
+  document.getElementById('app').innerHTML = `<section class="card"><h2 id="test-summary" data-pass="${res.length - fails.length}" data-fail="${fails.length}">${fails.length ? '❌' : '✅'} ${res.length - fails.length} / ${res.length} self-tests passed</h2>
+    <table><tbody>${res.map(r => `<tr><td>${r.ok ? '✅' : '❌'}</td><td>${esc(r.name)}</td><td class="muted small">${r.ok ? '' : 'got ' + esc(JSON.stringify(r.got)) + ' · want ' + esc(JSON.stringify(r.want))}</td></tr>`).join('')}</tbody></table>
+    <p><a href="?">Back to the app</a></p></section>`;
+  console.log(`[flow-game tests] ${res.length - fails.length}/${res.length} passed`, fails);
+}
+
+/* ============================================================
+   8. Boot
+   ============================================================ */
+if (new URLSearchParams(location.search).has('test')) renderTests();
+else { render(); setInterval(tick, 200); document.addEventListener('visibilitychange', tick); }
+</script>
+</body>
+</html>
