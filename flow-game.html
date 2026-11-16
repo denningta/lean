@@ -206,6 +206,16 @@ body.bc-dragging, body.bc-dragging * { cursor: grabbing !important; }
 .bc-labels { display: flex; gap: 8px; padding: 6px calc(var(--gutter) + 6px) 0 calc(var(--axis) + 6px); }
 .bc-labels div { flex: 1; max-width: 130px; margin: 0 auto; text-align: center; font-weight: 700; font-size: .9rem; }
 .bc.compact .bc-card .n { display: none; }
+/* Narrow charts (suggestion previews, phones): letters only, labels on one line. */
+.bc { container-type: inline-size; }
+.bc-total, .bc-labels div { white-space: nowrap; }
+@container (max-width: 440px) {
+  .bc-card span, .bc-card .n { display: none; }
+  .bc-card b { font-size: 12px; }
+  .bc-total { font-size: .72rem; }
+  .bc-labels div { font-size: .72rem; }
+  .bc-takt span { font-size: .68rem; }
+}
 .strip { display: flex; flex-wrap: wrap; align-items: stretch; row-gap: 8px; margin-top: 8px; }
 .chip { color: var(--card-ink); border: 1px solid rgb(0 0 0 / .3); border-radius: 6px; padding: 4px 8px; font-weight: 700; font-size: .85rem; text-align: center; min-width: 42px; }
 .chip small { display: block; font-weight: 500; font-size: .72rem; }
@@ -240,6 +250,45 @@ i.k-r1 { background: var(--r1); } i.k-r2 { background: var(--r2); }
 #toast { pointer-events: none; position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%) translateY(150%); background: var(--text); color: var(--bg); padding: 12px 18px; border-radius: 10px; font-weight: 700; z-index: 50; transition: transform .25s, opacity .25s; max-width: calc(100vw - 32px); box-shadow: 0 6px 24px rgb(0 0 0 / .25); }
 #toast.show { transform: translateX(-50%) translateY(0); }
 #toast.cue { background: var(--hot); color: var(--hot-ink); border: 2px solid var(--warn); }
+#toast.bad { border: 2px solid var(--danger); }
+
+/* LAN mode: share panel on the facilitator's screen, focused views on phones */
+.net-pill { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; font-weight: 600; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface-2); }
+.net-pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.net-pill.ok i { background: var(--good); }
+.net-pill.warn i { background: var(--warn); }
+.net-pill.bad i { background: var(--danger); }
+.share-panel { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 16px; }
+.share-qr svg { display: block; width: 220px; height: 220px; border-radius: 8px; }
+.share-info { flex: 1; min-width: 240px; }
+.share-info .msg { margin: 8px 0; }
+.share-url { font-size: 1.4rem; font-weight: 800; word-break: break-all; margin: 2px 0 12px; }
+.presence { list-style: none; padding: 0; margin: 4px 0 8px; display: grid; gap: 2px; }
+.presence .off { color: var(--muted); }
+body.projector .share-qr svg { width: min(46vh, 420px); height: min(46vh, 420px); }
+body.projector .share-url { font-size: 2.2rem; }
+.join-roles { display: grid; gap: 10px; margin-top: 14px; }
+.join-role { display: grid; gap: 3px; text-align: left; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: inherit; font: inherit; cursor: pointer; }
+.join-role:hover { border-color: var(--accent); }
+.join-role:active { background: var(--surface-2); }
+.join-role b { font-size: 1.1rem; }
+.join-role .who { color: var(--accent); font-weight: 600; }
+.join-bar { margin-bottom: 12px; }
+.join-bar .row { align-items: center; }
+.join-clock { font-size: clamp(2.6rem, 15vw, 4.5rem); font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.join-clock.ended { color: var(--danger); }
+.join-bar .progress { margin: 8px 0 10px; }
+.join-body > section { margin-bottom: 12px; }
+body.joiner main { max-width: 680px; }
+body.joiner .idle-wide { display: none; }
+body.joiner .idle-tall { display: block; }
+body.joiner .mini { display: none !important; }
+body.joiner table.wip, body.joiner table.idle { width: 100%; }
+body.joiner .idle-tall table.idle td, body.joiner .idle-tall table.idle th { padding: 4px 2px; }
+body.joiner .idle-cell { width: 100%; min-width: 28px; height: 40px; }
+body.joiner .defects .add { min-height: 60px; }
+body.joiner table.wip td { padding: 4px 3px; }
+body.joiner .w-cell { width: 100%; min-width: 2.4em; font-size: 1.1rem; padding: 8px 6px; }
 
 /* Projector mode */
 body.projector { font-size: 19px; }
@@ -287,6 +336,9 @@ svg.fold { width: 100%; height: auto; display: block; }
   body { background: #fff; color: #000; }
   .card { box-shadow: none; break-inside: avoid; }
 }
+.sugg { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
+.sugg.top { border: 2px solid var(--accent); }
+.sugg ul.tight { margin: 6px 0; }
 ul.checks { list-style: none; margin: 0; padding: 0; }
 ul.checks li { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 ul.checks li:last-child { border-bottom: 0; }
@@ -390,73 +442,92 @@ const CHECKS = [
   { key: 'serial', label: 'Serial number', accept: 'Written on the body, legible, numbered in order (01, 02, 03…)', reject: 'Missing or unreadable' },
   { key: 'inspection', label: 'Inspection mark', accept: 'A checkmark from the inspector on the tail', reject: 'Missing' },
 ];
-const MATERIALS = [
-  '80 sheets of 8.5 × 11 printer paper (preload WIP, both rounds, spares)',
-  '4 fine-tip markers (logo stations), 1 for the serial number station',
-  '2 tape dispensers',
-  '1 golden plane, built and labeled "GOLDEN — DO NOT SHIP"',
-  'Station sheets for Round 1 (6) and Round 2 (5), printed and laminated',
-  '13 element cards, cut to scale (1 cm = 2 s)',
-  "Whiteboard or flip chart, red tape for the takt line, painter's tape for the cards",
-  '1 stopwatch, 4 sticky tags for lead-time tracking',
-  'Metrics board on a flip chart, 2 observer tally sheets, pens',
-  '6 tables or stations in a straight line with inbox spots marked by tape',
-  'Round 1 WIP preloaded the day before (25 partial planes)',
-];
-const ROLES = [
-  { key: 'operators', label: 'Operators', r1: '6 (S1–S6)', r2: '5 (Op 1–Op 5)', job: 'Build per the station sheet' },
-  { key: 'customer', label: 'Customer', r1: '1', r2: '1', job: 'Pulls finished planes, accepts or rejects against the golden plane' },
-  { key: 'quality', label: 'Quality checker', r1: '1', r2: '1', job: 'Logs every defect on the metrics board' },
-  { key: 'timekeeper', label: 'Timekeeper', r1: '1', r2: '1', job: 'Runs the clock, starts and stops the tagged plane' },
-  { key: 'wip', label: 'WIP observer', r1: '1', r2: '1', job: 'Counts planes between stations at 0:00, 2:30 and 5:00' },
-  { key: 'idle', label: 'Idle observer', r1: '1', r2: '1', job: 'Tallies operators waiting or starved' },
-  { key: 'material', label: 'Material handler', r1: '1', r2: '2', job: 'Keeps paper, markers and tape stocked; in Round 2 the freed operator joins as water spider' },
-];
-const SESSION_SECONDS = 30 * 60;
-const STALL_AT = 18 * 60 + 30;
+/* Lists that depend on the game size are functions of the derived model `d`. Item order stays fixed so saved checkboxes still line up. */
+const materialsFor = d => {
+  const n1 = d.r1.length, n2 = Math.max(1, n1 - 1), B = d.c.batchSize;
+  return [
+    '80 sheets of 8.5 × 11 printer paper (preload WIP, both rounds, spares)',
+    '4 fine-tip markers (logo stations), 1 for the serial number station',
+    '2 tape dispensers',
+    '1 golden plane, built and labeled "GOLDEN — DO NOT SHIP"',
+    `Station sheets for Round 1 (${n1}) and Round 2 (${n2}), printed and laminated`,
+    `${d.c.elements.length} element cards, cut to scale (1 cm = 2 s)`,
+    "Whiteboard or flip chart, red tape for the takt line, painter's tape for the cards",
+    '1 stopwatch, 4 sticky tags for lead-time tracking',
+    'Metrics board on a flip chart, 2 observer tally sheets, pens',
+    `${n1} tables or stations in a straight line with inbox spots marked by tape`,
+    `Round 1 WIP preloaded the day before (${B * (n1 - 1)} partial planes)`,
+  ];
+};
+const SUPPORT_ROLES = 6;
+const rolesFor = d => {
+  const n1 = d.r1.length, n2 = Math.max(1, n1 - 1);
+  return [
+    { key: 'operators', label: 'Operators', r1: `${n1} (S1–S${n1})`, r2: `${n2} (Op 1–Op ${n2})`, job: 'Build per the station sheet' },
+    { key: 'customer', label: 'Customer', r1: '1', r2: '1', job: 'Pulls finished planes, accepts or rejects against the golden plane' },
+    { key: 'quality', label: 'Quality checker', r1: '1', r2: '1', job: 'Logs every defect on the metrics board' },
+    { key: 'timekeeper', label: 'Timekeeper', r1: '1', r2: '1', job: 'Runs the clock, starts and stops the tagged plane' },
+    { key: 'wip', label: 'WIP observer', r1: '1', r2: '1', job: `Counts planes between stations at ${wipTimes(d.c).map(fmtClock).join(', ')}` },
+    { key: 'idle', label: 'Idle observer', r1: '1', r2: '1', job: 'Tallies operators waiting or starved' },
+    { key: 'material', label: 'Material handler', r1: '1', r2: String(1 + n1 - n2), job: `Keeps paper, markers and tape stocked; in Round 2 the freed operator${n1 - n2 > 1 ? 's join' : ' joins'} as water spider` },
+  ];
+};
 
 /* Facilitator script. Functions receive derived values so numbers follow the setup. */
 const AGENDA = [
-  { id: 'kickoff', start: 0, end: 180, title: 'Kickoff',
+  { id: 'kickoff', len: 180, title: 'Kickoff',
     say: d => [`"Our customer wants ${d.c.demand} good planes in ${fmtMin(d.c.roundSeconds)}. That's one plane every ${fmtNum(d.T)} seconds. That number is takt time, the heartbeat of the line."`,
                `Show the golden plane. "Anything that doesn't match this is scrap."`],
     do: () => ['Hand out role cards and Round 1 station sheets.', 'Tag one plane in the S1 inbox.'] },
-  { id: 'r1', start: 180, end: 480, title: 'Round 1: Batch and push',
+  { id: 'r1', len: 'round', title: 'Round 1: Batch and push',
     rules: d => roundRules(1, d),
     say: () => ['"The line is already running. Go." Start the clock.'],
     do: d => ["Timekeeper records the tagged plane's finish time.", `WIP observer counts at ${fmtClock(d.c.roundSeconds / 2)} and ${fmtClock(d.c.roundSeconds)}.`, `Stop at ${fmtClock(d.c.roundSeconds)} sharp. Nobody moves a plane.`],
     link: { label: 'Open Round 1 timer', tab: 'run', round: 1 } },
-  { id: 'debrief', start: 480, end: 660, title: 'Round 1 debrief',
+  { id: 'debrief', len: 180, title: 'Round 1 debrief',
     do: () => ['Fill in the Round 1 column of the metrics board together.'],
-    ask: () => ['"Where did planes pile up?" (S4)', '"Who was standing around?" (S5, S6)', '"How long did the tagged plane take?"'],
+    ask: d => {
+      const bn = splitStats(d, d.r1).bottleneck, after = d.r1.map((_, i) => 'S' + (i + 1)).slice(bn + 1);
+      return [`"Where did planes pile up?" (S${bn + 1})`, `"Who was standing around?" (${after.join(', ') || 'the stations after the pile-up'})`, '"How long did the tagged plane take?"'];
+    },
     say: () => ['"Did anyone work slowly? No. The line was set up to fail. Let\'s see why."'],
     link: { label: 'Show metrics board', tab: 'results' } },
-  { id: 'chart', start: 660, end: 960, title: 'Build the balance chart',
+  { id: 'chart', len: 300, title: 'Build the balance chart',
     do: () => ['Hand each Round 1 operator the element cards for their station.', 'Each operator tapes their cards in a stack above their station number.'],
     say: () => ['Point at the red line. "Every stack above this line can\'t keep up with the customer. Every stack way below it is waiting."'],
     link: { label: 'Show Round 1 balance chart', tab: 'balance', mode: 'r1' } },
-  { id: 'level', start: 960, end: 1200, title: 'Level the load',
+  { id: 'level', len: 240, title: 'Level the load',
     say: d => ['"Move cards so every stack is under the red line. Cards must stay in build order, A through M."',
                `"The ${ordinal(d.r1.length)} person isn't cut. They become our water spider: keeping stock full and fixing problems so operators never stop."`],
-    do: d => [`Let them find that ${d.N} stacks are enough. Don't give the answer unless they stall at 18:30.`, 'Swap in the Round 2 station sheets that match their solution, or the answer key if close enough.'],
+    do: d => [`Let them find that ${d.N} stacks are enough. Don't give the answer unless they stall at ${fmtClock(stallAt(d.c))}.`, 'Swap in the Round 2 station sheets that match their solution, or the answer key if close enough.'],
     stall: true,
     link: { label: 'Open rebalance board', tab: 'balance', mode: 'rebalance' } },
-  { id: 'r2', start: 1200, end: 1500, title: 'Round 2: One-piece flow',
+  { id: 'r2', len: 'round', title: 'Round 2: One-piece flow',
     do: d => [`Clear Round 1 WIP. Preload 1 partial plane at the Op 2–Op ${d.r2.length} inboxes (${d.r2.length - 1} total) and blank paper at Op 1.`, `Tag a new plane, start the clock, stop at ${fmtClock(d.c.roundSeconds)} sharp.`],
     rules: d => roundRules(2, d),
     link: { label: 'Open Round 2 timer', tab: 'run', round: 2 } },
-  { id: 'close', start: 1500, end: 1800, title: 'Compare and close',
+  { id: 'close', len: 300, title: 'Compare and close',
     do: () => ['Fill in the Round 2 column. Circle the biggest change (the metrics board circles it for you).', 'Go around the room: one takeaway each.'],
     ask: () => ['"Where on our real line is there an S4? What would a balance chart of your cell look like?"'],
     note: 'If time runs short: cut the go-around to 3 volunteers; never cut the balance chart build.',
     link: { label: 'Show metrics board', tab: 'results' } },
 ];
-const SETUP_STEPS = [
-  'Line up 6 stations with a taped inbox spot between each.',
-  "Preload Round 1 WIP: a stack of 5 at the S2–S6 inboxes, each already built through the prior station's work (25 partial planes), plus blank paper at S1.",
-  'Post the metrics board, the empty balance chart board with the red takt line, and the golden plane where everyone can see them.',
-  'Pilot the build with 2 techs before game day, time each element, and adjust times on this page so S4 stays well over takt while total work stays near 120 s.',
-];
+/* Block start and end times follow the round length (the doc's 30:00 assumes 5:00 rounds). */
+function agendaFor(c) {
+  let t = 0;
+  return AGENDA.map(b => { const len = b.len === 'round' ? c.roundSeconds : b.len; const o = { ...b, start: t, end: t + len }; t += len; return o; });
+}
+const sessionLen = c => { const a = agendaFor(c); return a[a.length - 1].end; };
+const stallAt = c => agendaFor(c).find(b => b.id === 'level').start + 150;
+const setupStepsFor = d => {
+  const n1 = d.r1.length, B = d.c.batchSize, bn = splitStats(d, d.r1).bottleneck;
+  return [
+    `Line up ${n1} stations with a taped inbox spot between each.`,
+    `Preload Round 1 WIP: a stack of ${B} at the S2–S${n1} inboxes, each already built through the prior station's work (${B * (n1 - 1)} partial planes), plus blank paper at S1.`,
+    'Post the metrics board, the empty balance chart board with the red takt line, and the golden plane where everyone can see them.',
+    `Pilot the build before game day on the Card times tab, and use its checks and suggestions so S${bn + 1} stays well over takt late in the line.`,
+  ];
+};
 
 /* ============================================================
    2. Pure helpers and calculations
@@ -529,7 +600,9 @@ function splitStats(d, stacks) {
 }
 
 function newClock() { return { accum: 0, startedAt: null }; }
-function clockElapsed(cl) { return (cl.accum + (cl.startedAt ? Date.now() - cl.startedAt : 0)) / 1000; }
+/* On a phone in LAN mode, clocks were started on the facilitator's laptop: clockSkew converts this device's time to the laptop's. */
+let clockSkew = 0;
+function clockElapsed(cl) { return (cl.accum + (cl.startedAt ? Date.now() + clockSkew - cl.startedAt : 0)) / 1000; }
 function clockStart(cl) { if (!cl.startedAt) cl.startedAt = Date.now(); }
 function clockPause(cl) { if (cl.startedAt) { cl.accum += Date.now() - cl.startedAt; cl.startedAt = null; } }
 function clockSet(cl, sec) { cl.accum = Math.max(0, sec) * 1000; if (cl.startedAt) cl.startedAt = Date.now(); }
@@ -794,6 +867,8 @@ const FOLD = (() => {
 const DESIGN_DEFAULTS = { slack: 2, margin: 8 };
 const designTargets = c => ({ ...DESIGN_DEFAULTS, ...(c.design || {}) });
 const sumOf = a => a.reduce((x, y) => x + y, 0);
+/* "Late in the line": the back half, with at least one station after it (S4–S5 of 6, as in the doc). */
+const lateRange = n1 => [Math.floor(n1 / 2), n1 - 2];
 
 /* Contiguous split of `t` (times in build order) into N stacks.
    solveSplit(t, N, cost, cap) minimizes cost over splits whose stacks are all ≤ cap. */
@@ -824,7 +899,28 @@ function bestSplit(t, N) {
   return { max: a.v, cuts: b.cuts };
 }
 /* Total seconds above `top`, minimized over splits: zero exactly when some split fits. */
-const minExcess = (t, N, top) => (solveSplit(t, N, (v, s) => v + Math.max(0, s - top)) || { v: Infinity }).v;
+/* Same DP as solveSplit but value-only on typed arrays: auto-fit calls this thousands of times per search. */
+function minExcess(t, N, top) {
+  const n = t.length;
+  if (N < 1 || N > n) return Infinity;
+  const pre = new Float64Array(n + 1);
+  for (let i = 0; i < n; i++) pre[i + 1] = pre[i] + t[i];
+  let prev = new Float64Array(n + 1).fill(Infinity); prev[0] = 0;
+  for (let k = 1; k <= N; k++) {
+    const cur = new Float64Array(n + 1).fill(Infinity);
+    for (let i = k; i <= n - (N - k); i++) {
+      let best = Infinity;
+      for (let j = k - 1; j < i; j++) {
+        const p = prev[j]; if (p === Infinity) continue;
+        const sgm = pre[i] - pre[j], v = p + (sgm > top ? sgm - top : 0);
+        if (v < best) best = v;
+      }
+      cur[i] = best;
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
 
 function answerKeyFor(c, N) {
   const ids = c.elements.map(e => e.id), map = elementMap(c), top = takt(c) - designTargets(c).slack;
@@ -870,9 +966,18 @@ function designChecks(c) {
     over.map(x => `Op ${x.i + 1} (${x.s.join('+')}) is ${fmtNum(x.load - top)} s over: trim ${x.s.length > 1 ? 'one of ' + x.s.join(', ') : x.s[0]} by ${fmtNum(x.load - top)} s`).join('; ') + '.');
 
   const r1loads = r1.map(s => stackLoad(map, s)), bmax = Math.max(...r1loads), bi = r1loads.indexOf(bmax), need = T + tg.margin;
-  add('bottleneck', bmax >= need - 1e-9, 'Round 1 has a clear bottleneck',
-    `S${bi + 1} = ${fmtNum(bmax)} s, ${fmtNum(bmax - T)} s over takt. The chart needs it at least ${fmtNum(tg.margin)} s over (${fmtNum(need)} s) so the pile-up is obvious.`,
-    `Add ${fmtNum(need - bmax)} s to S${bi + 1}'s cards (${r1[bi].join(', ')})` + (bi + 1 < n1 ? `, or move ${r1[bi + 1][0]} into S${bi + 1} by setting its R1 station to ${nums[bi]}` : '') + '.');
+  const [lateLo, lateHi] = lateRange(n1), late = bi >= lateLo && bi <= lateHi;
+  const lateTxt = lateHi > lateLo ? `S${lateLo + 1}–S${lateHi + 1}` : `S${lateLo + 1}`;
+  const others = r1loads.map((l, i) => ({ l, i })).filter(x => x.i !== bi && x.l > T + 1e-9);
+  const bnFix = [];
+  if (bmax < need - 1e-9) bnFix.push(`add ${fmtNum(need - bmax)} s to S${bi + 1}'s cards (${r1[bi].join(', ')})` + (bi + 1 < n1 ? ` or move ${r1[bi + 1][0]} into S${bi + 1} (set its R1 station to ${nums[bi]})` : ''));
+  if (!late) bnFix.push(lateHi >= lateLo ? `regroup Round 1 so the overload falls on ${lateTxt} (see Suggested setups)` : 'use at least 3 Round 1 stations');
+  others.forEach(x => bnFix.push(`bring S${x.i + 1} (${fmtNum(x.l)} s) down to ${fmtNum(T)} s or less`));
+  add('bottleneck', !bnFix.length, 'Round 1 has one clear bottleneck, late in the line',
+    `S${bi + 1} of ${n1} = ${fmtNum(bmax)} s, ${fmtNum(bmax - T)} s over takt; it needs at least ${fmtNum(tg.margin)} s over (${fmtNum(need)} s). ` +
+    (lateHi >= lateLo ? `It belongs at ${lateTxt}, so planes pile up mid-line and the last stations sit waiting` : 'Round 1 needs at least 3 stations') +
+    (others.length ? `. Also over takt: ${others.map(x => `S${x.i + 1}`).join(', ')}` : '') + '.',
+    bnFix.map((f, i) => (i ? f : f[0].toUpperCase() + f.slice(1))).join('; ') + '.');
 
   return { checks: out, ok: out.every(x => x.ok), N, T, W, top, stacks, loads, r1loads };
 }
@@ -884,7 +989,7 @@ function fitCardTimes(base, c) {
   const T = takt(c), tg = designTargets(c), r1 = r1Stations(c), n1 = r1.length, N = n1 - 1, n = base.length;
   const fail = msg => ({ times: base.map(x => Math.max(1, Math.round(x))), ok: false, unmet: [msg] });
   if (!validSplit(c.elements, r1)) return fail('Put the Round 1 stations in build order first (R1 station numbers must not go down from A to M).');
-  if (N < 1) return fail('Round 1 needs at least 2 stations.');
+  if (n1 < 3) return fail('Round 1 needs at least 3 stations so the bottleneck can sit late in the line.');
   const lo = T * (N - 1), hi = T * N, top = T - tg.slack, need = T + tg.margin;
   const cap = Math.max(1, Math.floor(top + 1e-9));
   if (N * cap <= lo) return fail(`With ${fmtNum(tg.slack)} s of slack, ${N} stacks can't hold more than ${fmtNum(lo)} s. Lower the slack or change takt.`);
@@ -893,13 +998,19 @@ function fitCardTimes(base, c) {
   const target = W0 < bandLo ? bandLo : W0 > bandHi ? bandHi : W0;
   const goal = base.map(m => (W0 > 0 ? m * target / W0 : target / n));
   const st = r1.flatMap((s, si) => s.map(() => si));
+  /* The station to make the bottleneck: the heaviest one if it is already late in the line, else the heaviest late station. */
+  const [lateLo, lateHi] = lateRange(n1), gl = new Array(n1).fill(0);
+  goal.forEach((g, i) => { gl[st[i]] += g; });
+  let bt = gl.indexOf(Math.max(...gl));
+  if (bt < lateLo || bt > lateHi) { bt = lateLo; for (let k = lateLo; k <= lateHi; k++) if (gl[k] > gl[bt]) bt = k; }
   /* Rule violations (in seconds) are scored separately from closeness, so a big deviation can never hide a broken rule. */
   const score = t => {
     let W = 0; const loads = new Array(n1).fill(0);
     for (let i = 0; i < n; i++) { W += t[i]; loads[st[i]] += t[i]; }
     let viol = W <= lo ? lo + 1 - W : W > hi ? W - hi : 0;
     viol += minExcess(t, N, top);
-    const bmax = Math.max(...loads); if (bmax < need) viol += need - bmax;
+    if (loads[bt] < need) viol += need - loads[bt];
+    for (let k = 0; k < n1; k++) if (k !== bt && loads[k] > T) viol += loads[k] - T;
     let dev = 0; for (let i = 0; i < n; i++) dev += Math.abs(t[i] - goal[i]);
     return { viol, dev, p: viol * 1000 + dev };
   };
@@ -940,6 +1051,75 @@ function fitCardTimes(base, c) {
   const t = bestRun.t;
   const res = designChecks({ ...c, elements: c.elements.map((e, i) => ({ ...e, time: t[i] })) });
   return { times: t, ok: res.ok, unmet: res.checks.filter(x => !x.ok).map(x => `${x.title}: ${x.fix}`), checks: res };
+}
+
+/* ---------- Setup advisor ----------
+   Searches operator count, customer demand, round length and Round 1 grouping for setups that work
+   with the given times unchanged. Every suggestion is re-verified with designChecks before it is offered. */
+function* cutCombos(n, k, from = 1, acc = []) {
+  if (acc.length === k - 1) { yield acc; return; }
+  const left = k - 1 - acc.length;
+  for (let c = from; c <= n - left; c++) yield* cutCombos(n, k, c + 1, [...acc, c]);
+}
+/* Best Round 1 grouping into n1 stations: one bottleneck ≥ need, late in the line, every other station ≤ takt.
+   Prefers the fewest cards moved from the current grouping, then the doc's position (third from the end). */
+function bestLateSplit(t, n1, T, need, cur) {
+  const [lo, hi] = lateRange(n1);
+  if (hi < lo || n1 > t.length) return null;
+  const pre = [0]; for (const x of t) pre.push(pre[pre.length - 1] + x);
+  let best = null;
+  for (const cuts of cutCombos(t.length, n1)) {
+    const b = [0, ...cuts, t.length], loads = [];
+    for (let k = 0; k < n1; k++) loads.push(pre[b[k + 1]] - pre[b[k]]);
+    let bi = 0; for (let k = 1; k < n1; k++) if (loads[k] > loads[bi]) bi = k;
+    if (bi < lo || bi > hi || loads[bi] < need - 1e-9) continue;
+    if (loads.some((l, k) => k !== bi && l > T + 1e-9)) continue;
+    let moves = 0;
+    if (cur) for (let k = 0; k < n1; k++) for (let i = b[k]; i < b[k + 1]; i++) if (cur[i] !== k) moves++;
+    const score = moves + (bi === n1 - 3 ? 0 : 1) + Math.max(0, loads[bi] - (T + 2 * (need - T))) * 0.15;
+    if (!best || score < best.score - 1e-9) best = { cuts: [...cuts], loads, bi, moves, score };
+  }
+  return best;
+}
+function setupConfig(c, f) {
+  const b = [0, ...f.r1.cuts, f.times.length], st = [];
+  for (let k = 0; k < f.n1; k++) for (let i = b[k]; i < b[k + 1]; i++) st[i] = k + 1;
+  return { ...c, roundSeconds: f.R, demand: f.D, elements: c.elements.map((e, i) => ({ ...e, time: f.times[i], r1: st[i] })) };
+}
+function suggestSetups(base, c, limit = 3) {
+  const tg = designTargets(c);
+  const t = base.map(x => Math.max(1, Math.round(x))), W = sumOf(t), tmax = Math.max(...t);
+  const r1now = r1Stations(c), n1now = r1now.length;
+  const cur = validSplit(c.elements, r1now) ? r1now.flatMap((s, k) => s.map(() => k)) : null;
+  const found = [];
+  for (const R of [...new Set([c.roundSeconds, 240, 270, 300, 330, 360])]) {
+    for (let n2 = 3; n2 <= 6; n2++) {
+      for (let D = 4; D <= 20; D++) {
+        const T = R / D, top = T - tg.slack, need = T + tg.margin, n1 = n2 + 1;
+        if (!(W > T * (n2 - 1) + 1e-9 && W <= T * n2 + 1e-9) || tmax > top + 1e-9) continue;
+        const r2 = bestSplit(t, n2);
+        if (!r2 || r2.max > top + 1e-9) continue;
+        const r1 = bestLateSplit(t, n1, T, need, cur);
+        if (!r1) continue;
+        const cost = 3 * Math.abs(n2 - (n1now - 1)) + Math.abs(D - c.demand)
+          + (R !== c.roundSeconds ? 4 + Math.abs(R - c.roundSeconds) / 60 : 0)
+          + 0.5 * r1.moves + 0.15 * Math.max(0, 4 - (top - r2.max));
+        found.push({ R, D, T, n1, n2, r1, r2, cost, times: t, W });
+      }
+    }
+  }
+  found.sort((a, b) => a.cost - b.cost || a.D - b.D);
+  const picked = [], seen = new Set();
+  for (const f of found) {
+    const key = f.n2 + '|' + f.R;
+    if (seen.has(key)) continue;
+    const cfg = setupConfig(c, f);
+    if (!designChecks(cfg).ok) continue;
+    seen.add(key);
+    picked.push({ ...f, cfg, current: f.n1 === n1now && f.D === c.demand && f.R === c.roundSeconds && f.r1.moves === 0 });
+    if (picked.length >= limit) break;
+  }
+  return picked;
 }
 
 /* Pilot timing */
@@ -992,7 +1172,7 @@ function freshState(keep) {
     version: 1,
     createdAt: now.toISOString(),
     sessionName: 'Flow game ' + now.toISOString().slice(0, 10),
-    config: keep ? clone(keep.config) : { roundSeconds: 300, demand: 10, batchSize: 5, idleInterval: 30, elements: clone(DEFAULT_ELEMENTS), design: { ...DESIGN_DEFAULTS }, pilot: { who: '', runs: [], live: null }, prevTimes: null },
+    config: keep ? clone(keep.config) : { roundSeconds: 300, demand: 10, batchSize: 5, idleInterval: 30, elements: clone(DEFAULT_ELEMENTS), design: { ...DESIGN_DEFAULTS }, pilot: { who: '', runs: [], live: null }, prevTimes: null, prevSetup: null },
     rebalance: null,
     r2Stations: null,
     answerRevealed: false,
@@ -1028,7 +1208,9 @@ function load() {
   return normalize(s);
 }
 function save() {
+  if (NET.mode === 'join') return; /* a phone shows the facilitator's game; never overwrite its own saved session */
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); storageOk = true; } catch (e) { storageOk = false; }
+  netPush();
 }
 function download(name, text, type) {
   const blob = new Blob([text], { type });
@@ -1123,9 +1305,14 @@ function numInput(bind, value, { min = 0, cls = 'w-num', placeholder = '' } = {}
 const tile = (label, value, cls = '') => `<div class="tile ${cls}"><span>${label}</span><b>${value}</b></div>`;
 
 function renderChrome() {
-  document.getElementById('tabs').innerHTML = TABS.map(([k, l]) => `<button data-action="tab" data-tab="${k}" class="${state.ui.tab === k ? 'active' : ''}">${l}</button>`).join('');
   const theme = state.ui.theme;
+  if (NET.mode === 'join') {
+    document.getElementById('tabs').innerHTML = '';
+    document.getElementById('tools').innerHTML = [netPill(), NET.role && NET.gotState ? btn('join-role', 'Change role', { cls: 'sm', attrs: 'data-role=""' }) : '', btn('cycle-theme', 'Theme: ' + theme, { cls: 'sm' })].join('');
+  } else {
+  document.getElementById('tabs').innerHTML = TABS.map(([k, l]) => `<button data-action="tab" data-tab="${k}" class="${state.ui.tab === k ? 'active' : ''}">${l}</button>`).join('');
   document.getElementById('tools').innerHTML = [
+    NET.mode === 'host' ? btn('net-share', shareLabel(), { cls: 'sm' + (ui.shareOpen ? ' on' : ''), title: 'Let others enter data from their phones' }) : '',
     btn('toggle-sound', state.ui.sound ? 'Sound on' : 'Sound off', { cls: 'sm', title: 'Beep on round cues' }),
     btn('cycle-theme', 'Theme: ' + theme, { cls: 'sm' }),
     btn('toggle-projector', 'Projector (P)', { cls: 'sm' }),
@@ -1134,6 +1321,7 @@ function renderChrome() {
     btn('export-csv', 'Export CSV', { cls: 'sm' }),
     btn('new-session', 'New session', { cls: 'sm danger', confirm: true, title: 'Saves a copy, then clears all game data (keeps setup)' }),
   ].join('');
+  }
   document.body.classList.toggle('projector', !!state.ui.projector);
   if (theme === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme;
 }
@@ -1158,6 +1346,7 @@ function viewSetup(d) {
         ${tile('Total work content', fmtNum(d.W) + ' s')}
         ${tile('Operators needed', `${fmtNum(d.W)} ÷ ${fmtNum(d.T)} = ${(d.W / d.T).toFixed(1)} → ${d.N}`)}
         ${tile('Round 1 bottleneck', `S${s1.bottleneck + 1} · ${fmtNum(s1.maxLoad)} s`, s1.maxLoad > d.T ? 'bad' : '')}
+        ${tile('Operators', `${d.r1.length} → ${Math.max(1, d.r1.length - 1)} <span class="muted small">· ${d.r1.length + SUPPORT_ROLES} people</span>`)}
         ${tile('WIP checks', wipTimes(c).map(fmtClock).join(' · '))}
         ${tile('Idle scans / round', scanCount(c))}
       </div>
@@ -1172,15 +1361,15 @@ function viewSetup(d) {
       <div class="tbl-wrap"><table class="roles stack">
         <colgroup><col style="width:31%"><col style="width:6em"><col style="width:7.5em"><col></colgroup>
         <thead><tr><th>Role</th><th class="c">Round 1</th><th class="c">Round 2</th><th>Who</th></tr></thead>
-        <tbody>${ROLES.map(r => `<tr><td class="full"><b>${r.label}</b><div class="muted small">${esc(r.job)}</div></td><td class="c" data-label="Round 1">${r.r1}</td><td class="c" data-label="Round 2">${r.r2}</td><td class="full" data-label="Who"><input type="text" data-bind="roles.${r.key}" value="${esc(state.roles[r.key] || '')}" placeholder="${r.key === 'operators' ? 'Names, comma separated' : 'Name'}"></td></tr>`).join('')}</tbody>
+        <tbody>${rolesFor(d).map(r => `<tr><td class="full"><b>${r.label}</b><div class="muted small">${esc(r.job)}</div></td><td class="c" data-label="Round 1">${r.r1}</td><td class="c" data-label="Round 2">${r.r2}</td><td class="full" data-label="Who"><input type="text" data-bind="roles.${r.key}" value="${esc(state.roles[r.key] || '')}" placeholder="${r.key === 'operators' ? 'Names, comma separated' : 'Name'}"></td></tr>`).join('')}</tbody>
       </table></div>
     </section>
 
     <section class="card">
       <h2>Materials and room setup</h2>
-      <div class="checklist">${MATERIALS.map((m, i) => `<label class="chk"><input type="checkbox" data-bind="materials.m${i}" ${state.materials['m' + i] ? 'checked' : ''}><span>${esc(m)}</span></label>`).join('')}</div>
+      <div class="checklist">${materialsFor(d).map((m, i) => `<label class="chk"><input type="checkbox" data-bind="materials.m${i}" ${state.materials['m' + i] ? 'checked' : ''}><span>${esc(m)}</span></label>`).join('')}</div>
       <div class="lbl">Before the team arrives</div>
-      <div class="checklist">${SETUP_STEPS.map((m, i) => `<label class="chk"><input type="checkbox" data-bind="materials.s${i}" ${state.materials['s' + i] ? 'checked' : ''}><span>${esc(m)}</span></label>`).join('')}</div>
+      <div class="checklist">${setupStepsFor(d).map((m, i) => `<label class="chk"><input type="checkbox" data-bind="materials.s${i}" ${state.materials['s' + i] ? 'checked' : ''}><span>${esc(m)}</span></label>`).join('')}</div>
       <div class="row" style="margin-top:10px">${btn('goto', 'Preview and print station sheets →', { cls: 'sm', attrs: 'data-tab="sheets"' })}</div>
     </section>
     </div>
@@ -1241,7 +1430,7 @@ function fitBase(d) {
 }
 function fitPanel(d) {
   const c = d.c, p = ui.proposal, fb = fitBase(d);
-  let out = `<p style="margin:0 0 10px">Suggests whole-second card times as close as possible to ${esc(fb.source)} that pass every design check.</p>
+  let out = `<p style="margin:0 0 10px">Keeps the current setup and instead suggests whole-second card times as close as possible to ${esc(fb.source)} that pass every design check.</p>
     <div class="row">${btn('fit-suggest', 'Suggest card times', { cls: 'primary' })}
       ${fb.measured ? btn('fit-measured', 'Use measured as-is', { title: 'Round the measured times to whole seconds without fitting' }) : ''}
       ${c.prevTimes ? btn('fit-undo', 'Undo last change') : ''}</div>`;
@@ -1299,6 +1488,48 @@ function elementCardsSection(d, sum) {
       </table></div>
     </section>`;
 }
+let suggestMemo = { key: '', val: [] };
+function cachedSuggestions(base, c) {
+  const key = JSON.stringify([base, c.roundSeconds, c.demand, c.batchSize, c.elements.map(e => +e.r1), designTargets(c)]);
+  if (suggestMemo.key !== key) suggestMemo = { key, val: suggestSetups(base, c) };
+  return suggestMemo.val;
+}
+function setupChanges(f, c, d) {
+  const n1now = d.r1.length, out = [];
+  if (f.n1 !== n1now) out.push(`Operators: <b>${f.n1} → ${f.n2}</b> instead of ${n1now} → ${n1now - 1} (${f.n1 + SUPPORT_ROLES} people instead of ${n1now + SUPPORT_ROLES})`);
+  if (f.D !== c.demand) out.push(`Customer demand: <b>${f.D}</b> planes per round instead of ${c.demand} (takt <b>${fmtNum(f.T)} s</b> instead of ${fmtNum(d.T)} s)`);
+  if (f.R !== c.roundSeconds) out.push(`Round length: <b>${fmtClock(f.R)}</b> instead of ${fmtClock(c.roundSeconds)} (the session runs ${fmtClock(sessionLen({ ...c, roundSeconds: f.R }))})`);
+  const ids = c.elements.map(e => e.id), groups = stacksFromCuts(ids, f.r1.cuts);
+  if (f.r1.moves || f.n1 !== n1now) out.push(`Round 1 stations: ${groups.map((g, k) => { const txt = `S${k + 1} ${g.join('')}`; return (d.r1[k] || []).join('') === g.join('') ? txt : `<b>${txt}</b>`; }).join(' · ')}`);
+  return out;
+}
+function setupPanel(d) {
+  const c = d.c, fb = fitBase(d), tg = designTargets(c), list = cachedSuggestions(fb.base, c);
+  let out = `<p style="margin:0 0 10px">Setups that work with ${fb.measured ? 'your measured times' : 'the current card times'} unchanged (rounded to whole seconds): one clear Round 1 bottleneck late in the line, and a rebalance that fits ${fmtNum(tg.slack)} s under takt. Suggestions may change the operator count, customer demand, round length or Round 1 grouping.</p>`;
+  if (!list.length) {
+    out += `<div class="msg warn"><b>No setup works with these times unchanged.</b> Use step 4 to fit the card times to the current setup${fb.measured ? '' : ', or time a pilot build first'}.</div>`;
+  }
+  out += list.map((f, i) => {
+    const changes = setupChanges(f, c, d), dD = derive({ ...state, config: f.cfg, r2Stations: null });
+    const key = dD.key || dD.r1, maxV = niceMax(Math.max(f.T, ...f.r1.loads, ...splitStats(dD, key).loads) * 1.18);
+    const title = f.current ? 'Keep the current setup' : `${f.n1} → ${f.n2} operators · ${f.D} planes per ${fmtClock(f.R)} · takt ${fmtNum(f.T)} s`;
+    const timesChange = c.elements.some((e, k) => +e.time !== f.times[k]);
+    return `<div class="sugg ${i === 0 ? 'top' : ''}">
+      <div class="row"><b class="sp">${i === 0 ? '★ ' : ''}${esc(title)}</b><span class="pill ok">${fb.measured ? 'Keeps measured times' : 'Keeps card times'}</span></div>
+      ${changes.length ? `<ul class="tight small">${changes.map(x => `<li>${x}</li>`).join('')}</ul>` : `<p class="small" style="margin:4px 0">${timesChange ? 'Only the card times change, to the measured times.' : 'Nothing needs to change.'}</p>`}
+      <div class="small muted">Total ${fmtNum(f.W)} s ÷ ${fmtNum(f.T)} s takt → ${f.n2} operators · bottleneck S${f.r1.bi + 1} of ${f.n1} = ${fmtNum(f.r1.loads[f.r1.bi])} s (${fmtNum(f.r1.loads[f.r1.bi] - f.T)} s over takt) · best rebalance peaks at ${fmtNum(f.r2.max)} s (${fmtNum(f.T - f.r2.max)} s under takt)</div>
+      <details ${i === 0 ? 'open' : ''}><summary class="small">Preview the charts</summary>
+        <div class="grid" style="margin-top:6px;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))">
+          <div><div class="lbl">Round 1</div>${balanceChart(dD, dD.r1, { labelFn: k => 'S' + (k + 1), compact: true, maxV })}</div>
+          <div><div class="lbl">Round 2 answer key</div>${balanceChart(dD, key, { labelFn: k => 'Op ' + (k + 1), compact: true, maxV })}</div>
+        </div>
+      </details>
+      <div class="row" style="margin-top:8px">${btn('setup-apply', f.current && !timesChange ? 'Already in use' : 'Apply this setup', { cls: i === 0 ? 'primary sm' : 'sm', attrs: `data-i="${i}"`, disabled: f.current && !timesChange })}</div>
+    </div>`;
+  }).join('');
+  if (c.prevSetup) out += `<div class="row" style="margin-top:10px">${btn('setup-undo', 'Undo last setup change', { cls: 'sm' })}</div>`;
+  return out;
+}
 function viewTimes(d) {
   const c = d.c, sum = pilotSummary(c.pilot.runs, c.elements.length), dc = designChecks(c), tg = designTargets(c);
   const bad = dc.checks.filter(k => !k.ok).length;
@@ -1322,10 +1553,14 @@ function viewTimes(d) {
         </details>
       </section>
       <section class="card">
-        <h2>3 · Fit card times</h2>
-        ${fitPanel(d)}
+        <h2>3 · Suggested game setups</h2>
+        ${setupPanel(d)}
       </section>
     </div>
+    <section class="card span-all">
+      <h2>4 · Or fit the card times to this setup</h2>
+      ${fitPanel(d)}
+    </section>
     ${elementCardsSection(d, sum)}
   </div>`;
 }
@@ -1349,14 +1584,15 @@ function applyTimes(times, msg) {
 }
 
 /* ---------- Agenda / script ---------- */
-function currentBlock(t) { return AGENDA.find(b => t >= b.start && t < b.end) || (t >= SESSION_SECONDS ? AGENDA[AGENDA.length - 1] : AGENDA[0]); }
+function currentBlock(t, A) { return A.find(b => t >= b.start && t < b.end) || (t >= A[A.length - 1].end ? A[A.length - 1] : A[0]); }
 function viewAgenda(d) {
   const t = clockElapsed(state.session.clock), running = !!state.session.clock.startedAt;
-  const cur = currentBlock(t);
+  const A = agendaFor(d.c), L = sessionLen(d.c), SA = stallAt(d.c);
+  const cur = currentBlock(t, A);
   const list = (lbl, items, cls = '') => items && items.length ? `<div class="lbl">${lbl}</div>${cls === 'say' ? items.map(s => `<div class="say">${esc(s)}</div>`).join('') : `<ul class="tight">${items.map(s => `<li>${esc(s)}</li>`).join('')}</ul>`}` : '';
-  const blocks = AGENDA.map(b => {
+  const blocks = A.map(b => {
     const isCur = b === cur;
-    const stallLive = b.stall && t >= STALL_AT && t < b.end;
+    const stallLive = b.stall && t >= SA && t < b.end;
     return `<section class="card block ${isCur ? 'cur' : ''}" id="blk-${b.id}">
       <h3><span class="when">${fmtClock(b.start)}–${fmtClock(b.end)}</span><span>${esc(b.title)}</span><span class="sp"></span>
         <span class="no-proj">${btn('session-jump', 'Jump here', { cls: 'sm', attrs: `data-t="${b.start}"` })}</span></h3>
@@ -1364,20 +1600,20 @@ function viewAgenda(d) {
       ${list('Say', b.say && b.say(d), 'say')}
       ${list('Do', b.do && b.do(d))}
       ${list('Ask', b.ask && b.ask(d))}
-      ${b.stall ? `<div class="stall ${stallLive ? 'live' : ''}"><b>${stallLive ? 'It is past 18:30. If they are stalled, prompt in this order:' : 'Only if they stall at 18:30, prompt in this order:'}</b>
+      ${b.stall ? `<div class="stall ${stallLive ? 'live' : ''}"><b>${stallLive ? `It is past ${fmtClock(SA)}. If they are stalled, prompt in this order:` : `Only if they stall at ${fmtClock(SA)}, prompt in this order:`}</b>
         <ol class="tight">${stallPrompts(d).map(p => `<li>${esc(p)}</li>`).join('')}</ol></div>` : ''}
       ${b.note ? `<div class="msg warn" style="margin-top:10px">${esc(b.note)}</div>` : ''}
       ${b.link ? `<div class="row no-proj" style="margin-top:10px">${btn('goto', b.link.label + ' →', { cls: 'primary sm', attrs: `data-tab="${b.link.tab}" data-round="${b.link.round || ''}" data-mode="${b.link.mode || ''}"` })}</div>` : ''}
     </section>`;
   }).join('');
-  const nxt = AGENDA.find(b => b.start > t);
+  const nxt = A.find(b => b.start > t);
   return `
   <div class="stack-v">
     <section class="card">
       <div class="row" style="align-items:flex-end">
         <div>
           <div class="muted small">Session clock</div>
-          <div class="big-clock" style="font-size:clamp(44px,8vw,84px)"><span data-clock="session">${fmtClock(t)}</span><span class="muted" style="font-size:.4em"> / ${fmtClock(SESSION_SECONDS)}</span></div>
+          <div class="big-clock" style="font-size:clamp(44px,8vw,84px)"><span data-clock="session">${fmtClock(t)}</span><span class="muted" style="font-size:.4em"> / ${fmtClock(L)}</span></div>
         </div>
         <div class="sp"></div>
         <div class="row no-proj">
@@ -1387,11 +1623,11 @@ function viewAgenda(d) {
       </div>
       <div class="muted" style="margin-top:6px">Now: <b>${esc(cur.title)}</b>${nxt ? ` · Next: ${esc(nxt.title)} in <span data-clock="session-next">${fmtClock(nxt.start - t)}</span>` : ''}</div>
       <div class="timeline">
-        ${AGENDA.map(b => `<button style="flex:${b.end - b.start}" class="${b === cur ? 'cur' : ''}" data-action="session-jump" data-t="${b.start}" title="${esc(b.title)}">${esc(b.title)}</button>`).join('')}
-        <div class="marker" data-progress="session-marker" style="left:${Math.min(100, t / SESSION_SECONDS * 100)}%"></div>
+        ${A.map(b => `<button style="flex:${b.end - b.start}" class="${b === cur ? 'cur' : ''}" data-action="session-jump" data-t="${b.start}" title="${esc(b.title)}">${esc(b.title)}</button>`).join('')}
+        <div class="marker" data-progress="session-marker" style="left:${Math.min(100, t / L * 100)}%"></div>
       </div>
     </section>
-    <details class="card no-proj"><summary><b>Before the team arrives</b></summary><ul class="tight">${SETUP_STEPS.map(s => `<li>${esc(s)}</li>`).join('')}</ul></details>
+    <details class="card no-proj"><summary><b>Before the team arrives</b></summary><ul class="tight">${setupStepsFor(d).map(s => `<li>${esc(s)}</li>`).join('')}</ul></details>
     ${blocks}
   </div>`;
 }
@@ -1404,7 +1640,7 @@ function hotCols(c, e) {
   const idle = Math.min(scanCount(c), Math.floor(e / c.idleInterval + 1e-6)) - 1;
   return { wip, idle };
 }
-function viewRun(d) {
+function runParts(d) {
   const n = state.ui.runRound, r = state.rounds[n], c = d.c;
   ensureRound(n, d);
   const stations = n === 1 ? d.r1 : d.r2, k = stations.length;
@@ -1432,12 +1668,13 @@ function viewRun(d) {
     }).join('')}<td class="n"><b>${idleTotals[i]}</b></td></tr>`).join('');
   const scanTotals = Array.from({ length: scans }, (_, j) => stations.reduce((s, _, i) => s + (r.idle[i + 1][j] ? 1 : 0), 0));
 
-  return `
+  const parts = { n, r, R, e, running, startLabel };
+  parts.head = `
   <div class="row" style="margin-bottom:12px">
     <div class="seg">${[1, 2].map(x => `<button data-action="run-round" data-round="${x}" class="${n === x ? 'active' : ''}">${x === 1 ? 'Round 1 · Batch and push' : 'Round 2 · One-piece flow'}</button>`).join('')}</div>
     <span class="muted">${esc(srcNote)}</span>
-  </div>
-  <div class="grid run">
+  </div>`;
+  parts.clock = `
     <section class="card clock-card"><div class="clock-main">
       <div class="muted small">Round ${n} · time remaining</div>
       <div class="big-clock ${r.ended ? 'ended' : ''}" data-clock="round-${n}">${fmtClock(Math.ceil(R - e - 1e-6))}</div>
@@ -1451,8 +1688,8 @@ function viewRun(d) {
       <div class="cue ${ui.cueFlash ? 'flash' : ''}" data-cue>${cue ? esc(cue) : `<span class="muted">Cues appear here: WIP counts at ${wt.map(fmtClock).join(', ')}, and an idle scan every ${c.idleInterval} s.</span>`}</div>
       <div class="lbl">Round ${n} rules</div>
       <ul class="rules">${roundRules(n, d).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-    </div></section>
-
+    </div></section>`;
+  parts.quality = `
     <section class="card">
       <h2>Customer and quality checker</h2>
       <div class="counter-big">
@@ -1468,8 +1705,8 @@ function viewRun(d) {
           <button class="sub no-proj" data-action="defect-sub" data-key="${k.key}" aria-label="Remove one ${esc(k.label)} defect">−</button></div>`).join('')}</div>
       <div class="row" style="margin-top:8px"><b>Total defects: ${defectTotal(r)}</b><span class="sp"></span>${btn('undo', 'Undo last tap', { cls: 'sm', disabled: !r.log.length })}</div>
       <ul class="log" style="margin-top:8px">${r.log.slice(-8).reverse().map(l => `<li><span class="num">${fmtClock(l.t)}</span> · ${esc(logText(l))}</li>`).join('') || '<li class="muted">No taps yet.</li>'}</ul>
-    </section>
-
+    </section>`;
+  parts.timekeeper = `
     <section class="card">
       <h2>Timekeeper: tagged plane</h2>
       <div class="tiles">
@@ -1487,8 +1724,8 @@ function viewRun(d) {
         <label>Ship (s) ${numInput(`rounds.${n}.taggedShip`, r.taggedShip)}</label>
         <label class="chk"><input type="checkbox" data-bind="rounds.${n}.didNotShip" ${r.didNotShip ? 'checked' : ''}> Did not ship</label>
       </div>
-    </section>
-
+    </section>`;
+  parts.wip = `
     <section class="card wip-card">
       <h2>WIP observer</h2>
       <p class="muted small" style="margin:0 0 6px">Count every plane sitting between stations (inboxes and stacks), not the one in an operator's hands. 0:00 is pre-filled with the preload.</p>
@@ -1496,8 +1733,8 @@ function viewRun(d) {
         <thead><tr><th>Round ${n} inbox</th>${wt.map((x, col) => `<th class="c ${hot.wip === col ? 'hotcol' : ''}">${fmtClock(x)}</th>`).join('')}</tr></thead>
         <tbody>${wipRows}</tbody>
       </table></div>
-    </section>
-
+    </section>`;
+  parts.idle = `
     <section class="card idle-card">
       <div class="row"><h2 class="sp">Idle observer</h2><span class="muted small">Every ${c.idleInterval} s, tap each operator who is waiting (empty inbox) or blocked (can't pass). The current scan is highlighted.</span></div>
       <div class="tbl-wrap idle-wide"><table class="idle">
@@ -1513,7 +1750,13 @@ function viewRun(d) {
         }).join('')}<td class="n">${scanTotals[j]}</td></tr>`).join('')}</tbody>
         <tfoot><tr class="total"><td>Total</td>${idleTotals.map(v => `<td class="c">${v}</td>`).join('')}<td class="n">${idleTotals.reduce((a, b) => a + b, 0)}</td></tr></tfoot>
       </table></div>
-    </section>
+    </section>`;
+  return parts;
+}
+function viewRun(d) {
+  const p = runParts(d);
+  return p.head + `
+  <div class="grid run">` + p.clock + p.quality + p.timekeeper + p.wip + p.idle + `
   </div>`;
 }
 function logText(l) {
@@ -1796,7 +2039,9 @@ function render() {
     renderChrome();
     const app = document.getElementById('app');
     const next = document.createElement('div');
-    next.innerHTML = (storageOk ? '' : '<div class="msg warn" style="margin-bottom:12px"><b>Browser storage is unavailable.</b> Use "Save session" to keep your data.</div>') + (VIEWS[state.ui.tab] || viewSetup)(d);
+    const view = NET.mode === 'join' ? viewJoin : (VIEWS[state.ui.tab] || viewSetup);
+    next.innerHTML = (storageOk || NET.mode === 'join' ? '' : '<div class="msg warn" style="margin-bottom:12px"><b>Browser storage is unavailable.</b> Use "Save session" to keep your data.</div>')
+      + (NET.mode === 'host' && ui.shareOpen ? sharePanel() : '') + view(d);
     morph(app, next);
     /* Fallback: if a layout change still replaced the focused field, refocus its replacement with the caret at the end. */
     if (key && document.activeElement !== a) {
@@ -1843,9 +2088,9 @@ function updateClocks() {
   }
   const t = clockElapsed(state.session.clock);
   document.querySelectorAll('[data-clock="session"]').forEach(el => { el.textContent = fmtClock(t); });
-  const nxt = AGENDA.find(b => b.start > t);
+  const A = agendaFor(c), nxt = A.find(b => b.start > t);
   document.querySelectorAll('[data-clock="session-next"]').forEach(el => { el.textContent = nxt ? fmtClock(nxt.start - t) : ''; });
-  document.querySelectorAll('[data-progress="session-marker"]').forEach(el => { el.style.left = Math.min(100, t / SESSION_SECONDS * 100) + '%'; });
+  document.querySelectorAll('[data-progress="session-marker"]').forEach(el => { el.style.left = Math.min(100, t / sessionLen(c) * 100) + '%'; });
   const pl = state.config.pilot && state.config.pilot.live;
   if (pl) {
     const step = Math.max(0, (Date.now() - pl.stepStart) / 1000);
@@ -1860,6 +2105,7 @@ function updateClocks() {
 }
 
 function tick() {
+  if (NET.mode === 'join') { updateClocks(); return; } /* only the facilitator's tab fires cues and ends rounds */
   const c = state.config, R = c.roundSeconds;
   let changed = false;
   for (const n of [1, 2]) {
@@ -1884,12 +2130,13 @@ function tick() {
   const s = state.session;
   if (s.clock.startedAt) {
     const t = clockElapsed(s.clock);
-    for (const b of AGENDA) {
+    const SA = stallAt(c), L = sessionLen(c);
+    for (const b of agendaFor(c)) {
       const id = 'b-' + b.id;
       if (b.start > 0 && t >= b.start && !s.fired.includes(id)) { s.fired.push(id); toast(`${fmtClock(b.start)} · Next block: ${b.title}`, 'cue'); beep('idle'); changed = true; }
     }
-    if (t >= STALL_AT && !s.fired.includes('stall')) { s.fired.push('stall'); toast('18:30 · If the team is stalled, start the prompts (Script tab).', 'cue'); changed = true; }
-    if (t >= SESSION_SECONDS && !s.fired.includes('end')) { s.fired.push('end'); toast('30:00 · Time is up.', 'cue'); beep('end'); changed = true; }
+    if (t >= SA && !s.fired.includes('stall')) { s.fired.push('stall'); toast(`${fmtClock(SA)} · If the team is stalled, start the prompts (Script tab).`, 'cue'); changed = true; }
+    if (t >= L && !s.fired.includes('end')) { s.fired.push('end'); toast(`${fmtClock(L)} · Time is up.`, 'cue'); beep('end'); changed = true; }
   }
   if (changed) commit(); else updateClocks();
 }
@@ -1916,6 +2163,12 @@ const ACTIONS = {
   'toggle-sound': () => { state.ui.sound = !state.ui.sound; if (state.ui.sound) beep('idle'); },
   'cycle-theme': () => { const o = ['auto', 'light', 'dark']; state.ui.theme = o[(o.indexOf(state.ui.theme) + 1) % 3]; },
   'toggle-projector': () => { state.ui.projector = !state.ui.projector; },
+  'net-share': () => { ui.shareOpen = !ui.shareOpen; window.scrollTo(0, 0); render(); return false; },
+  'join-role': el => {
+    NET.role = el.dataset.role || null;
+    try { localStorage.setItem(JOIN_ROLE_KEY, NET.role || ''); } catch (e) { /* private mode */ }
+    netConnect(); window.scrollTo(0, 0);
+  },
   'export-json': () => { exportJSON(); toast('Session saved to your downloads.'); return false; },
   'import-json': () => { document.getElementById('import-file').click(); return false; },
   'export-csv': () => { download(fileStem() + '.csv', buildCSV(state), 'text/csv'); toast('CSV saved to your downloads.'); return false; },
@@ -1938,6 +2191,22 @@ const ACTIONS = {
     state.config.prevTimes = null; ui.proposal = null; toast('Card times restored.');
   },
   'fit-dismiss': () => { ui.proposal = null; },
+  'setup-apply': el => {
+    const c = state.config, fb = fitBase(derive(state)), f = cachedSuggestions(fb.base, c)[+el.dataset.i];
+    if (!f) return false;
+    c.prevSetup = { roundSeconds: c.roundSeconds, demand: c.demand, times: c.elements.map(e => +e.time), r1: c.elements.map(e => +e.r1) };
+    c.roundSeconds = f.R; c.demand = f.D;
+    c.elements.forEach((e, i) => { e.time = f.cfg.elements[i].time; e.r1 = f.cfg.elements[i].r1; });
+    state.rebalance = null; state.r2Stations = null; state.answerRevealed = false; ui.proposal = null;
+    toast(`Setup applied: ${f.n1} → ${f.n2} operators, ${f.D} planes per ${fmtClock(f.R)} round (takt ${fmtNum(f.T)} s). Reprint the station sheets.`);
+  },
+  'setup-undo': () => {
+    const c = state.config, p = c.prevSetup; if (!p) return;
+    c.roundSeconds = p.roundSeconds; c.demand = p.demand;
+    c.elements.forEach((e, i) => { if (isNum(p.times[i])) e.time = p.times[i]; if (isNum(p.r1[i])) e.r1 = p.r1[i]; });
+    c.prevSetup = null; state.rebalance = null; state.r2Stations = null; ui.proposal = null;
+    toast('Previous setup restored.');
+  },
   'print-sheets': el => { printHTML(sheetsHTML(derive(state), +el.dataset.round)); return false; },
   'print-results': () => { printHTML(`<h1>${esc(state.sessionName)}: results</h1>` + document.getElementById('app').innerHTML); return false; },
 
@@ -1945,7 +2214,7 @@ const ACTIONS = {
   'session-reset': () => { state.session = { clock: newClock(), fired: [] }; },
   'session-jump': el => {
     const t = +el.dataset.t; clockSet(state.session.clock, t);
-    state.session.fired = AGENDA.filter(b => b.start <= t).map(b => 'b-' + b.id).concat(t >= STALL_AT ? ['stall'] : []);
+    state.session.fired = agendaFor(state.config).filter(b => b.start <= t).map(b => 'b-' + b.id).concat(t >= stallAt(state.config) ? ['stall'] : []);
   },
 
   'run-round': el => { state.ui.runRound = +el.dataset.round; },
@@ -2005,6 +2274,7 @@ document.addEventListener('click', ev => {
     }
     ui.confirm = null;
   }
+  if (NET.mode === 'join' && !JOIN_LOCAL.has(action)) { if (JOIN_ACTIONS[action]) netSendAction(action, el.dataset); return; }
   const fn = ACTIONS[action]; if (!fn) return;
   const res = fn(el, ev);
   if (res !== false) commit();
@@ -2023,12 +2293,16 @@ function bindValue(el) {
 document.addEventListener('input', ev => {
   const el = ev.target.closest('[data-bind]'); if (!el || el.type === 'checkbox') return;
   const b = bindValue(el); if (!b) return;
-  setPath(state, b.path, b.v);
-  if (/^rounds\.\d\.taggedShip$/.test(b.path) && isNum(b.v)) state.rounds[b.path[7]].didNotShip = false;
-  if (/^config\.(elements|pilot\.runs|design|roundSeconds|demand)/.test(b.path)) ui.proposal = null;
+  if (NET.mode === 'join') { if (JOIN_BIND.test(b.path)) { setPath(state, b.path, b.v); netSendBind(b.path, b.v); render(); } return; }
+  applyBind(b.path, b.v);
   save();
   render();
 });
+function applyBind(path, v) {
+  setPath(state, path, v);
+  if (/^rounds\.\d\.taggedShip$/.test(path) && isNum(v)) state.rounds[path[7]].didNotShip = false;
+  if (/^config\.(elements|pilot\.runs|design|roundSeconds|demand)/.test(path)) ui.proposal = null;
+}
 document.addEventListener('change', ev => {
   const el = ev.target;
   if (el.id === 'import-file') {
@@ -2041,11 +2315,15 @@ document.addEventListener('change', ev => {
     };
     rd.readAsText(f); return;
   }
+  if (NET.mode === 'join' && el.matches('[data-bind]')) {
+    if (el.type === 'checkbox' && JOIN_BIND.test(el.dataset.bind)) { setPath(state, el.dataset.bind, el.checked); netSendBind(el.dataset.bind, el.checked, 0); }
+    render(); return;
+  }
   if (el.matches('[data-bind]') && el.type === 'checkbox') { setPath(state, el.dataset.bind, el.checked); if (el.dataset.bind.startsWith('config.pilot.runs')) ui.proposal = null; commit(); }
   else if (el.matches('[data-bind]')) render();
 });
 document.addEventListener('keydown', ev => {
-  if (ev.target.closest('input, textarea, select') || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (NET.mode === 'join' || ev.target.closest('input, textarea, select') || ev.metaKey || ev.ctrlKey || ev.altKey) return;
   if (state.ui.tab === 'times' && state.config.pilot.live && (ev.key === ' ' || ev.key === 'Backspace')) {
     ev.preventDefault(); if (ev.repeat) return;
     ui.pilotSpace = ev.key === ' ';
@@ -2127,7 +2405,357 @@ window.addEventListener('pointercancel', ev => { if (drag && ev.pointerId === dr
 window.addEventListener('blur', () => endDrag(false));
 /* A finished drag must not also count as a tap-select. */
 window.addEventListener('click', ev => { if (ui.suppressClick) { ui.suppressClick = false; ev.stopPropagation(); ev.preventDefault(); } }, true);
-window.addEventListener('storage', ev => { if (ev.key === STORE_KEY) { state = load(); render(); } });
+window.addEventListener('storage', ev => { if (ev.key === STORE_KEY && NET.mode !== 'join') { state = load(); render(); netPush(); } });
+
+/* ============================================================
+   6b. LAN mode (optional). Run `python3 serve.py`, open http://localhost:8000 on the
+   facilitator's laptop, and others join from phones on the same Wi-Fi. The facilitator's
+   tab is the only writer: joiners send taps, the host applies them with the same ACTIONS
+   and pushes the result back out. Opened as a file, none of this runs.
+   ============================================================ */
+const NET = { cid: Math.random().toString(36).slice(2) + Date.now().toString(36), mode: 'solo', status: 'off', es: null, token: null, joinUrl: '', presence: [], hostOnline: false,
+  gotState: false, role: null, offs: [], off: 0, hostOff: 0, seq: 0, pushing: false, queued: false, dirty: false, pending: {}, bindTimers: {} };
+const JOIN_ROLE_KEY = STORE_KEY + '.joinRole';
+const JOIN_ROLES = [
+  { key: 'quality', label: 'Customer and quality checker', names: ['customer', 'quality'], job: 'Count good planes and log each rejected plane by the check it failed.' },
+  { key: 'timekeeper', label: 'Timekeeper', names: ['timekeeper'], job: 'Start the round and stamp the tagged plane when it ships.' },
+  { key: 'wip', label: 'WIP observer', names: ['wip'], job: 'Count the planes waiting between stations at each WIP cue.' },
+  { key: 'idle', label: 'Idle observer', names: ['idle'], job: 'At each idle scan, tap every operator who is waiting or blocked.' },
+  { key: 'watch', label: 'Just watching', names: [], job: 'Follow the clock and the scoreboard.' },
+];
+/* What a joiner may change. Everything else is the facilitator's. */
+const isCheck = dt => CHECKS.some(k => k.key === dt.key);
+const roundStarted = r => clockElapsed(r.clock) > 0;
+const JOIN_ACTIONS = {
+  good: () => true, 'good-sub': () => true, undo: () => true, 'round-toggle': () => true,
+  'tag-ship': (dt, r) => roundStarted(r), 'tag-start': (dt, r) => roundStarted(r),
+  defect: isCheck, 'defect-sub': isCheck,
+  idle: (dt, r) => Array.isArray(r.idle[dt.st]) && Number.isInteger(+dt.scan) && +dt.scan >= 0 && +dt.scan < r.idle[dt.st].length,
+};
+const JOIN_BIND = /^rounds\.[12]\.(wip\.(in\d{1,2}|out)\.[0-2]|taggedStart|taggedShip|didNotShip)$/;
+const JOIN_LOCAL = new Set(['join-role', 'cycle-theme']);
+
+async function netInit() {
+  if (!/^https?:$/.test(location.protocol)) return;
+  const params = new URLSearchParams(location.search);
+  let info = null;
+  try {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 2500);
+    const res = await fetch('/api/info', { cache: 'no-store', signal: ctl.signal });
+    clearTimeout(timer);
+    if (res.ok) info = await res.json();
+  } catch (e) { /* plain static hosting or offline: stay solo */ }
+  if (!info || info.app !== 'flow-game') return;
+  NET.joinUrl = info.joinUrl || '';
+  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  if ((loopback || params.has('host')) && !params.has('join')) {
+    NET.mode = 'host'; NET.status = 'standby';
+    const hold = () => new Promise(() => netConnect()); /* keep the lock until this tab closes */
+    if (navigator.locks) navigator.locks.request('flow-game-host', hold); else hold();
+  } else {
+    NET.mode = 'join'; document.body.classList.add('joiner');
+    const theme = state.ui.theme;
+    state = freshState(); state.ui.theme = theme;
+    try { NET.role = localStorage.getItem(JOIN_ROLE_KEY) || null; } catch (e) { /* private mode */ }
+    netConnect();
+  }
+  /* Tell the server right away when this tab goes, so phones see "Facilitator offline" at once. */
+  addEventListener('pagehide', () => { try { navigator.sendBeacon('/api/bye', JSON.stringify({ cid: NET.cid })); } catch (e) { /* best effort */ } });
+  addEventListener('pageshow', ev => { if (ev.persisted) netConnect(); });
+}
+
+function netConnect() {
+  if (NET.es) NET.es.close();
+  const q = (NET.mode === 'host' ? 'role=host' : 'role=join&as=' + encodeURIComponent(NET.role || '')) + '&cid=' + NET.cid;
+  const es = NET.es = new EventSource('/api/events?' + q);
+  NET.status = 'connecting';
+  const on = (name, fn) => es.addEventListener(name, ev => { let m = null; try { m = JSON.parse(ev.data); } catch (e) { return; } fn(m); });
+  on('hello', m => {
+    netClockSample(m.t);
+    NET.status = 'live'; NET.joinUrl = m.joinUrl || NET.joinUrl; NET.hostOnline = !!m.hostOnline;
+    if (NET.mode === 'host') { NET.token = m.token; netPushNow(); }
+    render();
+  });
+  on('ping', m => netClockSample(m.t));
+  on('state', netApplyState);
+  on('action', netOnRemote);
+  on('presence', m => { NET.presence = Array.isArray(m.roles) ? m.roles : []; render(); });
+  on('host', m => { NET.hostOnline = !!m.online; render(); });
+  on('demoted', () => { es.close(); NET.es = null; NET.token = null; NET.status = 'demoted'; render(); });
+  es.onerror = () => { if (NET.es === es && NET.status !== 'reconnecting') { NET.status = 'reconnecting'; NET.token = null; render(); } };
+}
+
+/* Clock offsets: each device estimates (server clock − own clock) from server timestamps,
+   keeping the largest recent sample (the one with the least network delay). The host sends
+   its estimate with each state, so a joiner can read the host's Date.now()-based clocks. */
+function netClockSample(t) {
+  if (!isNum(t)) return;
+  NET.offs.push(t - Date.now()); if (NET.offs.length > 12) NET.offs.shift();
+  NET.off = Math.max(...NET.offs);
+  if (NET.mode === 'join') clockSkew = NET.off - NET.hostOff;
+}
+
+/* ---- host side ---- */
+/* No timers here: browsers slow timers in background tabs to once a second, and the
+   facilitator's game is often behind the slides. One push in flight; changes made
+   meanwhile go out as one push when it returns. */
+function netPush() {
+  if (NET.mode !== 'host' || !NET.token) return;
+  NET.dirty = true;
+  if (!NET.pushing && !NET.queued) { NET.queued = true; queueMicrotask(() => { NET.queued = false; netPushNow(); }); }
+}
+function netPushNow() {
+  if (NET.mode !== 'host' || !NET.token) return;
+  if (NET.pushing) { NET.dirty = true; return; }
+  NET.dirty = false; NET.pushing = true;
+  const { ui: _local, ...shared } = state;
+  const body = JSON.stringify({ shared, liveRound: state.ui.runRound, hostOff: NET.off, seq: ++NET.seq });
+  fetch('/api/state', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Host-Token': NET.token }, body })
+    .then(res => { if (res.status === 403 && NET.status === 'live') { NET.token = null; netConnect(); } }) /* stale token after a server restart */
+    .catch(() => { /* the EventSource reports the outage */ })
+    .finally(() => { NET.pushing = false; if (NET.dirty) netPushNow(); });
+}
+function runAction(name, data) {
+  const el = { dataset: { ...data }, disabled: false };
+  if (ACTIONS[name](el, { stopPropagation() {}, preventDefault() {} }) !== false) commit();
+}
+function netOnRemote(m) {
+  if (!m || typeof m !== 'object') return;
+  try {
+    if (m.kind === 'action' && Object.hasOwn(JOIN_ACTIONS, m.action)) {
+      const n = state.ui.runRound, r = state.rounds[n];
+      ensureRound(n, derive(state));
+      const data = m.data && typeof m.data === 'object' ? m.data : {};
+      if (JOIN_ACTIONS[m.action](data, r)) runAction(m.action, data);
+    } else if (m.kind === 'bind' && typeof m.path === 'string' && JOIN_BIND.test(m.path)) {
+      const v = m.v;
+      if (m.path.endsWith('didNotShip') ? typeof v !== 'boolean' : !(v === null || (isNum(v) && v >= 0))) return;
+      ensureRound(+m.path[7], derive(state));
+      applyBind(m.path, v); commit();
+    }
+  } catch (e) { console.warn('[flow-game] ignored an edit from a phone', m, e); }
+}
+
+/* ---- joiner side ---- */
+function netApplyState(m) {
+  netClockSample(m.t);
+  const msg = m.s;
+  if (!msg || !msg.shared) return;
+  NET.hostOff = isNum(msg.hostOff) ? msg.hostOff : 0;
+  clockSkew = NET.off - NET.hostOff;
+  const next = normalize({ ...msg.shared, ui: state.ui });
+  next.ui.runRound = msg.liveRound === 2 ? 2 : 1;
+  /* Keep what this phone just typed until the host's copy catches up. */
+  for (const [path, p] of Object.entries(NET.pending)) {
+    if (p.until < Date.now() || getPath(next, path) === p.v) delete NET.pending[path];
+    else try { setPath(next, path, p.v); } catch (e) { delete NET.pending[path]; }
+  }
+  if (NET.gotState) joinCues(state, next);
+  state = next; NET.gotState = true; NET.hostOnline = true;
+  render();
+}
+function joinCues(prev, next) {
+  const n = next.ui.runRound, a = prev.rounds[n].fired, b = next.rounds[n].fired;
+  if (!b.length) { ui.cue[n] = null; return; }
+  if (prev.ui.runRound !== n) return;
+  const fired = roundCues(next.config).filter(q => b.includes(q.id) && !a.includes(q.id));
+  if (!fired.length) return;
+  ui.cue[n] = cueMessage(fired, next.config); ui.cueFlash = true;
+  setTimeout(() => { ui.cueFlash = false; render(); }, 3200);
+  try { if (navigator.vibrate) navigator.vibrate(fired.some(q => q.kind === 'end') ? [300, 120, 300] : 200); } catch (e) { /* not supported */ }
+}
+function netPost(body) {
+  return fetch('/api/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, as: NET.role || '' }) })
+    .then(res => { if (res.status === 503) { NET.hostOnline = false; toast("The facilitator's game isn't open, so that wasn't recorded.", 'bad'); render(); } })
+    .catch(() => toast('Not connected, so that wasn\'t recorded. Check the Wi-Fi.', 'bad'));
+}
+function netSendAction(action, dataset) {
+  const data = {};
+  for (const [k, v] of Object.entries(dataset)) if (k !== 'action' && k !== 'confirm') data[k] = v;
+  netPost({ kind: 'action', action, data });
+}
+function netSendBind(path, v, delay = 300) {
+  NET.pending[path] = { v, until: Date.now() + delay + 3000 };
+  clearTimeout(NET.bindTimers[path]);
+  NET.bindTimers[path] = setTimeout(() => { delete NET.bindTimers[path]; netPost({ kind: 'bind', path, v }); }, delay);
+}
+
+/* ---- views ---- */
+function netPill() {
+  const [cls, text] = NET.status !== 'live' ? ['warn', NET.status === 'reconnecting' ? 'Reconnecting…' : 'Connecting…']
+    : !NET.hostOnline ? ['bad', 'Facilitator offline'] : ['ok', 'Live'];
+  return `<span class="net-pill ${cls}" role="status"><i></i>${text}</span>`;
+}
+function shareLabel() {
+  if (NET.status === 'live') return `Share · ${NET.presence.length} joined`;
+  return { standby: 'Share (another tab is hosting)', demoted: 'Share (hosting moved)', reconnecting: 'Share (server offline)' }[NET.status] || 'Share';
+}
+function sharePanel() {
+  const count = key => NET.presence.filter(x => x === key).length;
+  const picking = count('');
+  const note = NET.status === 'live' ? ''
+    : NET.status === 'standby' ? '<div class="msg warn">Another tab of the game is hosting. Phones talk to that tab.</div>'
+    : NET.status === 'demoted' ? '<div class="msg warn">Another window took over hosting (it was opened with ?host). Reload this tab to take it back.</div>'
+    : '<div class="msg bad"><b>Can\'t reach serve.py.</b> Is it still running? This tab reconnects on its own.</div>';
+  return `<section class="card share-panel">
+    <div class="share-qr">${NET.joinUrl ? QR.svg(NET.joinUrl) : ''}</div>
+    <div class="share-info">
+      <div class="row"><h2 class="sp">Join from a phone</h2><span class="no-proj">${btn('net-share', 'Close', { cls: 'sm' })}</span></div>
+      ${note}
+      <p class="muted" style="margin:4px 0 0">On the same Wi-Fi as this laptop, scan the code or open:</p>
+      <div class="share-url">${esc(NET.joinUrl)}</div>
+      <div class="lbl">Connected</div>
+      <ul class="presence">${JOIN_ROLES.map(r => { const k = count(r.key); return `<li class="${k ? '' : 'off'}">${k ? '✓' : '–'} ${esc(r.label)}${k > 1 ? ` (${k})` : ''}</li>`; }).join('')}
+        ${picking ? `<li>… ${picking} choosing a role</li>` : ''}</ul>
+      <p class="muted small">Taps from phones are applied here and then sent back out, so keep this tab open while the game runs.</p>
+    </div>
+  </section>`;
+}
+function viewJoin(d) {
+  if (!NET.gotState) return `<section class="card"><h2>${NET.hostOnline ? 'Loading the game…' : 'Waiting for the facilitator'}</h2>
+    <p class="muted">Keep this page open. It fills in once the game is open on the facilitator's laptop.</p></section>`;
+  const role = JOIN_ROLES.find(r => r.key === NET.role);
+  if (!role) return `<section class="card"><h2>${esc(state.sessionName)}</h2><p class="muted" style="margin:0">Pick your job. You can change it any time. Tip: set your screen to stay on during the round.</p>
+    <div class="join-roles">${JOIN_ROLES.map(r => {
+      const who = r.names.map(k => state.roles[k]).filter(Boolean).join(', ');
+      return `<button class="join-role" data-action="join-role" data-role="${r.key}"><b>${esc(r.label)}</b>${who ? `<span class="who">${esc(who)}</span>` : ''}<span class="muted small">${esc(r.job)}</span></button>`;
+    }).join('')}</div></section>`;
+  const p = runParts(d), n = p.n, r = p.r, c = d.c;
+  const hint = r.ended ? 'Round over. Nobody moves a plane.'
+    : role.key === 'wip' ? `Count WIP at ${wipTimes(c).map(fmtClock).join(', ')}. Your phone buzzes when it's time.`
+    : role.key === 'idle' ? `Scan every ${c.idleInterval} s. Your phone buzzes at each scan.`
+    : `Cues appear here: WIP counts at ${wipTimes(c).map(fmtClock).join(', ')}, and an idle scan every ${c.idleInterval} s.`;
+  const lt = leadTime(r, c);
+  const body = role.key === 'watch'
+    ? `<section class="card"><h2>Scoreboard</h2><div class="tiles">${tile('Good planes', `${r.good} of ${c.demand}`)}${tile('Defects', defectTotal(r))}${tile('Lead time', fmtMetric(lt, 's'), lt.dns ? 'bad' : '')}</div></section>`
+    : p[role.key];
+  return `<section class="card join-bar">
+    <div class="row"><div class="sp"><div class="muted small">${esc(role.label)} · Round ${n}, ${n === 1 ? 'batch and push' : 'one-piece flow'}</div>
+      <div class="join-clock ${r.ended ? 'ended' : ''}" data-clock="round-${n}">${fmtClock(Math.ceil(p.R - p.e - 1e-6))}</div></div>
+      ${role.key === 'timekeeper' ? btn('round-toggle', p.startLabel, { cls: 'primary big', disabled: r.ended }) : ''}</div>
+    <div class="progress"><div data-progress="round-${n}" style="width:${p.e / p.R * 100}%"></div></div>
+    <div class="cue ${ui.cueFlash ? 'flash' : ''}" data-cue>${ui.cue[n] ? esc(ui.cue[n]) : `<span class="muted">${esc(hint)}</span>`}</div>
+  </section>
+  <div class="join-body">${body}</div>`;
+}
+
+/* Minimal QR encoder (byte mode, error correction M, versions 1–10) for the join link,
+   so the Share panel works without internet access. */
+const QR = (() => {
+  const M = [null, [10, [16]], [16, [28]], [26, [44]], [18, [32, 32]], [24, [43, 43]], [16, [27, 27, 27, 27]], [18, [31, 31, 31, 31]],
+    [22, [38, 38, 39, 39]], [22, [36, 36, 36, 37, 37]], [26, [43, 43, 43, 43, 44]]];
+  const ALIGN = [null, [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50]];
+  const mul = (x, y) => { let z = 0; for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11d); z ^= ((y >>> i) & 1) * x; } return z; };
+  function rsDivisor(deg) {
+    const r = new Array(deg).fill(0); r[deg - 1] = 1; let root = 1;
+    for (let i = 0; i < deg; i++) { for (let j = 0; j < deg; j++) { r[j] = mul(r[j], root); if (j + 1 < deg) r[j] ^= r[j + 1]; } root = mul(root, 2); }
+    return r;
+  }
+  function rsRemainder(data, div) {
+    const r = div.map(() => 0);
+    for (const b of data) { const f = b ^ r.shift(); r.push(0); div.forEach((c, i) => { r[i] ^= mul(c, f); }); }
+    return r;
+  }
+  const bit = (x, i) => ((x >>> i) & 1) !== 0;
+  function encode(text) {
+    const bytes = [...new TextEncoder().encode(text)];
+    let ver = 1;
+    for (; ver <= 10; ver++) { const cap = M[ver][1].reduce((a, b) => a + b, 0) * 8; if (4 + (ver < 10 ? 8 : 16) + bytes.length * 8 <= cap) break; }
+    if (ver > 10) return null;
+    const [ecLen, blocks] = M[ver], capBits = blocks.reduce((a, b) => a + b, 0) * 8;
+    const bits = [];
+    const put = (v, n) => { for (let i = n - 1; i >= 0; i--) bits.push((v >>> i) & 1); };
+    put(4, 4); put(bytes.length, ver < 10 ? 8 : 16); bytes.forEach(b => put(b, 8));
+    put(0, Math.min(4, capBits - bits.length)); put(0, (8 - bits.length % 8) % 8);
+    const data = [];
+    for (let i = 0; i < bits.length; i += 8) data.push(bits.slice(i, i + 8).reduce((a, b) => a << 1 | b, 0));
+    for (let p = 0xec; data.length < capBits / 8; p ^= 0xec ^ 0x11) data.push(p);
+    const div = rsDivisor(ecLen), dB = [], eB = [];
+    let k = 0;
+    for (const n of blocks) { const b = data.slice(k, k + n); k += n; dB.push(b); eB.push(rsRemainder(b, div)); }
+    const cw = [];
+    for (let i = 0; i < Math.max(...blocks); i++) dB.forEach(b => { if (i < b.length) cw.push(b[i]); });
+    for (let i = 0; i < ecLen; i++) eB.forEach(b => cw.push(b[i]));
+    const size = ver * 4 + 17;
+    const mod = Array.from({ length: size }, () => new Array(size).fill(false));
+    const fn = Array.from({ length: size }, () => new Array(size).fill(false));
+    const set = (x, y, d) => { mod[y][x] = d; fn[y][x] = true; };
+    for (let i = 0; i < size; i++) { set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+    const finder = (cx, cy) => {
+      for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+        const x = cx + dx, y = cy + dy, dist = Math.max(Math.abs(dx), Math.abs(dy));
+        if (x >= 0 && x < size && y >= 0 && y < size) set(x, y, dist !== 2 && dist !== 4);
+      }
+    };
+    finder(3, 3); finder(size - 4, 3); finder(3, size - 4);
+    const al = ALIGN[ver], last = al.length - 1;
+    al.forEach((ay, i) => al.forEach((ax, j) => {
+      if ((i === 0 && j === 0) || (i === 0 && j === last) || (i === last && j === 0)) return;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(ax + dx, ay + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+    }));
+    const drawFormat = mask => {
+      const d = mask; let r = d; /* level M = 00 */
+      for (let i = 0; i < 10; i++) r = (r << 1) ^ ((r >>> 9) * 0x537);
+      const b = ((d << 10) | r) ^ 0x5412;
+      for (let i = 0; i <= 5; i++) set(8, i, bit(b, i));
+      set(8, 7, bit(b, 6)); set(8, 8, bit(b, 7)); set(7, 8, bit(b, 8));
+      for (let i = 9; i < 15; i++) set(14 - i, 8, bit(b, i));
+      for (let i = 0; i < 8; i++) set(size - 1 - i, 8, bit(b, i));
+      for (let i = 8; i < 15; i++) set(8, size - 15 + i, bit(b, i));
+      set(8, size - 8, true);
+    };
+    drawFormat(0);
+    if (ver >= 7) {
+      let r = ver;
+      for (let i = 0; i < 12; i++) r = (r << 1) ^ ((r >>> 11) * 0x1f25);
+      const b = (ver << 12) | r;
+      for (let i = 0; i < 18; i++) { const a = size - 11 + i % 3, c = Math.floor(i / 3); set(a, c, bit(b, i)); set(c, a, bit(b, i)); }
+    }
+    let i = 0;
+    for (let right = size - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      for (let v = 0; v < size; v++) for (let j = 0; j < 2; j++) {
+        const x = right - j, y = ((right + 1) & 2) === 0 ? size - 1 - v : v;
+        if (!fn[y][x] && i < cw.length * 8) { mod[y][x] = bit(cw[i >>> 3], 7 - (i & 7)); i++; }
+      }
+    }
+    const MASKS = [(x, y) => (x + y) % 2 === 0, (x, y) => y % 2 === 0, x => x % 3 === 0, (x, y) => (x + y) % 3 === 0,
+      (x, y) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0, (x, y) => x * y % 2 + x * y % 3 === 0,
+      (x, y) => (x * y % 2 + x * y % 3) % 2 === 0, (x, y) => ((x + y) % 2 + x * y % 3) % 2 === 0];
+    const applyMask = m => { for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (!fn[y][x] && MASKS[m](x, y)) mod[y][x] = !mod[y][x]; };
+    const penalty = () => {
+      let p = 0, dark = 0;
+      const line = get => {
+        let run = 1;
+        for (let a = 1; a < size; a++) { if (get(a) === get(a - 1)) { run++; if (run === 5) p += 3; else if (run > 5) p++; } else run = 1; }
+        const light = (s, e) => { for (let q = s; q < e; q++) if (q >= 0 && q < size && get(q)) return false; return true; };
+        for (let a = 0; a + 7 <= size; a++) {
+          if (get(a) && !get(a + 1) && get(a + 2) && get(a + 3) && get(a + 4) && !get(a + 5) && get(a + 6) && (light(a - 4, a) || light(a + 7, a + 11))) p += 40;
+        }
+      };
+      for (let y = 0; y < size; y++) line(x => mod[y][x]);
+      for (let x = 0; x < size; x++) line(y => mod[y][x]);
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        if (mod[y][x]) dark++;
+        if (x + 1 < size && y + 1 < size && mod[y][x] === mod[y][x + 1] && mod[y][x] === mod[y + 1][x] && mod[y][x] === mod[y + 1][x + 1]) p += 3;
+      }
+      const total = size * size;
+      return p + (Math.ceil(Math.abs(dark * 20 - total * 10) / total) - 1) * 10;
+    };
+    let best = 0, bestP = Infinity;
+    for (let m = 0; m < 8; m++) { applyMask(m); drawFormat(m); const p = penalty(); if (p < bestP) { bestP = p; best = m; } applyMask(m); }
+    applyMask(best); drawFormat(best);
+    return mod;
+  }
+  /* Dark on white with a 4-module quiet zone: scanners need that whatever the theme. */
+  function svg(text) {
+    const m = encode(text); if (!m) return '';
+    const n = m.length + 8; let d = '';
+    m.forEach((row, y) => row.forEach((on, x) => { if (on) d += `M${x + 4} ${y + 4}h1v1h-1z`; }));
+    return `<svg viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges" role="img" aria-label="QR code for the join link"><rect width="${n}" height="${n}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+  }
+  return { encode, svg };
+})();
 
 /* ============================================================
    7. Self-tests (open with ?test)
@@ -2222,6 +2850,25 @@ function runTests() {
   const ae = clone(dcfg); ae.elements[0].time += 3; ae.elements[4].time -= 3;  /* doc key's A+B+C+D becomes 30 s */
   eq('answer key re-solves when the doc key no longer fits', (() => { const k = answerKeyFor(ae, 5), m = elementMap(ae); return [k === ANSWER_KEY, k.length, Math.max(...k.map(st => stackLoad(m, st)))]; })(), [false, 5, 27]);
   eq('stall prompt numbers follow the cards', stallPrompts(derive(s))[1], '"Can S5 and S6 be one person?" (L + M = 18 s)');
+  const early = clone(dcfg); [1, 1, 1, 1, 1, 2, 2, 3, 4, 4, 5, 6, 6].forEach((r, i) => { early.elements[i].r1 = r; });  /* S1 = A–E = 34 s */
+  eq('a bottleneck at S1 fails the late-in-the-line check', designChecks(early).checks.find(k => k.key === 'bottleneck').ok, false);
+  const sg = suggestSetups(docT, dcfg);
+  eq('advisor: doc times → keep the current setup first', [sg[0].current, sg[0].n1, sg[0].D, sg[0].R], [true, 6, 10, 300]);
+  const small = docT.map(t => t * 0.82), sgS = suggestSetups(small, dcfg);
+  const opt54 = sgS.find(f => f.n1 === 5 && f.n2 === 4);
+  eq('advisor: ~100 s of work offers starting with 5 and going down to 4', [!!opt54, opt54 && designChecks(opt54.cfg).ok], [true, true]);
+  const sgB = suggestSetups(docT.map(t => t * 1.3), dcfg);
+  eq('advisor: ~159 s of work needs a change, and every option works', [sgB.length > 0, sgB[0].current, sgB.every(f => designChecks(f.cfg).ok)], [true, false, true]);
+  let advOk = true; fz = 777;
+  for (let r = 0; r < 25; r++) {
+    const total = 80 + rnd() * 120, raw = docT.map(t => t * (0.5 + rnd())), sc = total / sumOf(raw);
+    for (const f of suggestSetups(raw.map(v => v * sc), dcfg)) if (!designChecks(f.cfg).ok) advOk = false;
+  }
+  eq('advisor: every suggestion passes every design check', advOk, true);
+  eq('agenda: 5:00 rounds → 30:00 session, stall prompt at 18:30', [sessionLen(dcfg), stallAt(dcfg)], [1800, 1110]);
+  eq('agenda: 6:00 rounds → 32:00 session', sessionLen({ ...dcfg, roundSeconds: 360 }), 1920);
+  const d54 = derive({ ...s, config: opt54.cfg });
+  eq('roles and materials follow a 5 → 4 game', [rolesFor(d54)[0].r1, rolesFor(d54)[0].r2, materialsFor(d54)[4]], ['5 (S1–S5)', '4 (Op 1–Op 4)', 'Station sheets for Round 1 (5) and Round 2 (4), printed and laminated']);
   const g = FOLD.geom, near = (a, b) => Math.abs(a - b) < 1e-6;
   eq('every element A–M has a fold diagram', DEFAULT_ELEMENTS.every(e => FOLD.has(e.id) && FOLD.svg(e.id).startsWith('<svg')), true);
   eq('D fold meets the side edge at 10.26 in', Math.round(g.yD * 100) / 100, 10.26);
@@ -2245,7 +2892,7 @@ function renderTests() {
    8. Boot
    ============================================================ */
 if (new URLSearchParams(location.search).has('test')) renderTests();
-else { render(); setInterval(tick, 200); document.addEventListener('visibilitychange', tick); }
+else netInit().finally(() => { render(); setInterval(tick, 200); document.addEventListener('visibilitychange', tick); });
 </script>
 </body>
 </html>

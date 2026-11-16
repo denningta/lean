@@ -1,3 +1,8 @@
 # Editor backup files
 .hype-backups/
 *.bak
+
+# LAN mode backup written by serve.py
+flow-game-session.json
+flow-game-session.tmp
+__pycache__/
